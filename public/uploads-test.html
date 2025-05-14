@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Uploads Model Viewer Test</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer@v3.0.2/dist/model-viewer.min.js"></script>
+    <style>
+        model-viewer {
+            width: 100%;
+            height: 400px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-model {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Uploads Model Viewer Test</h1>
+        <p>This test verifies model loading from the /uploads directory structure</p>
+        
+        <div class="test-model">
+            <h2>Default Model (Reference)</h2>
+            <model-viewer 
+                src="/assets/astronaut.glb"
+                auto-rotate 
+                camera-controls 
+                shadow-intensity="1"
+                alt="Default reference model">
+            </model-viewer>
+            <p>Path: /assets/astronaut.glb</p>
+            <p>Status: <span id="status-default" style="font-weight: bold;">Loading...</span></p>
+        </div>
+        
+        <div class="test-model">
+            <h2>Uploads Model</h2>
+            <model-viewer 
+                src="/uploads/models/astronaut.glb"
+                auto-rotate 
+                camera-controls 
+                shadow-intensity="1"
+                alt="Uploaded model">
+            </model-viewer>
+            <p>Path: /uploads/models/astronaut.glb</p>
+            <p>Status: <span id="status-upload" style="font-weight: bold;">Loading...</span></p>
+        </div>
+        
+        <div class="test-model">
+            <h2>modelo4.glb Test</h2>
+            <model-viewer 
+                src="/uploads/models/modelo4.glb"
+                auto-rotate 
+                camera-controls 
+                shadow-intensity="1"
+                alt="Model specifically mentioned in error">
+            </model-viewer>
+            <p>Path: /uploads/models/modelo4.glb</p>
+            <p>Status: <span id="status-modelo4" style="font-weight: bold;">Loading...</span></p>
+        </div>
+    </div>
+    
+    <script>
+        // Monitor model loading status
+        document.addEventListener('DOMContentLoaded', () => {
+            const models = [
+                { el: document.querySelectorAll('model-viewer')[0], status: document.getElementById('status-default') },
+                { el: document.querySelectorAll('model-viewer')[1], status: document.getElementById('status-upload') },
+                { el: document.querySelectorAll('model-viewer')[2], status: document.getElementById('status-modelo4') }
+            ];
+            
+            models.forEach(({ el, status }) => {
+                el.addEventListener('load', () => {
+                    status.textContent = 'Loaded successfully!';
+                    status.style.color = 'green';
+                });
+                
+                el.addEventListener('error', () => {
+                    status.textContent = 'Failed to load';
+                    status.style.color = 'red';
+                });
+            });
+            
+            // Fallback timeout for status updates
+            setTimeout(() => {
+                models.forEach(({ status }) => {
+                    if (status.textContent === 'Loading...') {
+                        status.textContent = 'Status unknown (timeout)';
+                        status.style.color = 'orange';
+                    }
+                });
+            }, 10000);
+        });
+    </script>
+</body>
+</html> 

@@ -3,7 +3,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { PlusCircle, Edit, Eye } from "lucide-react"
-import { getCharacters } from "@/lib/data"
+import { getCharacters, getMainImageUrl } from "@/lib/data"
 
 export default async function CharactersPage() {
   // Get characters from our data source
@@ -29,7 +29,7 @@ export default async function CharactersPage() {
           <Card key={character.id} className="overflow-hidden">
             <div className="aspect-square relative">
               <Image
-                src={character.imageUrl || "/placeholder.svg"}
+                src={getMainImageUrl(character)}
                 alt={character.name}
                 fill
                 className="object-cover"

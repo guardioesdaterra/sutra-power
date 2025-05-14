@@ -18,7 +18,12 @@ import {
   AlignRight,
 } from "lucide-react"
 
-export function RichTextEditor({ onChange, initialValue = "" }) {
+interface RichTextEditorProps {
+  onChange: (content: string) => void;
+  initialValue?: string;
+}
+
+export function RichTextEditor({ onChange, initialValue = "" }: RichTextEditorProps) {
   const [content, setContent] = useState(initialValue)
   const [view, setView] = useState("edit")
 
@@ -26,16 +31,16 @@ export function RichTextEditor({ onChange, initialValue = "" }) {
     if (initialValue && initialValue !== content) {
       setContent(initialValue)
     }
-  }, [initialValue])
+  }, [initialValue, content])
 
-  const handleContentChange = (e) => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value
     setContent(newContent)
     onChange(newContent)
   }
 
-  const insertTag = (openTag, closeTag) => {
-    const textarea = document.getElementById("editor-textarea")
+  const insertTag = (openTag: string, closeTag: string) => {
+    const textarea = document.getElementById("editor-textarea") as HTMLTextAreaElement
     if (!textarea) return
 
     const start = textarea.selectionStart

@@ -18,12 +18,12 @@ interface DocumentUploaderProps {
 export function DocumentUploader({ documents, onAddDocument, onRemoveDocument }: DocumentUploaderProps) {
   const [activeTab, setActiveTab] = useState("upload")
   const [isUploading, setIsUploading] = useState(false)
-  const [documentFile, setDocumentFile] = useState(null)
+  const [documentFile, setDocumentFile] = useState<File | null>(null)
   const [documentName, setDocumentName] = useState("")
   const [textContent, setTextContent] = useState("")
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (file) {
       setDocumentFile(file)
       if (!documentName) {
@@ -32,27 +32,17 @@ export function DocumentUploader({ documents, onAddDocument, onRemoveDocument }:
     }
   }
 
-  const handleUploadPdf = async () => {
+  const handleUploadPdfLogic = async () => {
     if (!documentFile) return
-
     setIsUploading(true)
-
     try {
-      // This would normally upload to a storage service
-      // For this example, we're just simulating the upload
       await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Create a fake URL for the PDF
       const fakeUrl = `/uploads/documents/${documentFile.name}`
-
-      // Add the document
       onAddDocument({
         url: fakeUrl,
         name: documentName || documentFile.name,
         type: "pdf",
       })
-
-      // Reset form
       setDocumentFile(null)
       setDocumentName("")
     } catch (error) {
@@ -63,25 +53,21 @@ export function DocumentUploader({ documents, onAddDocument, onRemoveDocument }:
     }
   }
 
-  const handleSaveText = async () => {
+  const onUploadPdfHandler = () => {
+    void handleUploadPdfLogic();
+  }
+
+  const handleSaveTextLogic = () => {
     if (!textContent) return
-
     setIsUploading(true)
-
     try {
-      // For text content, we'll store it directly
-      // In a real app, you might want to save this to a file or database
       const textBlob = new Blob([textContent], { type: "text/plain" })
       const textUrl = URL.createObjectURL(textBlob)
-
-      // Add the document
       onAddDocument({
         url: textUrl,
         name: documentName || "Chapter Text",
         type: "text",
       })
-
-      // Reset form
       setTextContent("")
       setDocumentName("")
     } catch (error) {
@@ -90,6 +76,10 @@ export function DocumentUploader({ documents, onAddDocument, onRemoveDocument }:
     } finally {
       setIsUploading(false)
     }
+  }
+
+  const onSaveTextHandler = () => {
+    handleSaveTextLogic();
   }
 
   return (
@@ -190,7 +180,7 @@ export function DocumentUploader({ documents, onAddDocument, onRemoveDocument }:
             )}
 
             <div className="flex justify-end">
-              <Button onClick={handleUploadPdf} disabled={isUploading || !documentFile} className="gap-2">
+              <Button onClick={onUploadPdfHandler} disabled={isUploading || !documentFile} className="gap-2">
                 <Upload className="h-4 w-4" />
                 {isUploading ? "Uploading..." : "Upload PDF"}
               </Button>
@@ -220,7 +210,7 @@ export function DocumentUploader({ documents, onAddDocument, onRemoveDocument }:
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={handleSaveText} disabled={isUploading || !textContent} className="gap-2">
+              <Button onClick={onSaveTextHandler} disabled={isUploading || !textContent} className="gap-2">
                 <Upload className="h-4 w-4" />
                 {isUploading ? "Saving..." : "Save Text"}
               </Button>

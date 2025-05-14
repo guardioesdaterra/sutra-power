@@ -13,9 +13,9 @@ export function CharacterSummary({ characterId }: CharacterSummaryProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchSummary = () => {
       try {
-        const summaryData = await getSutraSummary(characterId)
+        const summaryData = getSutraSummary(characterId)
         setSummary(summaryData)
         setIsLoading(false)
       } catch (error) {

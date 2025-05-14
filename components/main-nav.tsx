@@ -2,141 +2,74 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { BookOpen, CuboidIcon as Cube, Home, Users, Menu, X } from "lucide-react"
+import { BookOpen, CuboidIcon as Cube, Home, Users, LucideIcon } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
-import { useState, useEffect } from "react"
-import { DragonAscii } from "./dragon-ascii"
+import { useState } from "react"
+
+interface NavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+  activeCheck?: (pathname: string) => boolean
+}
+
+const navItems: NavItem[] = [
+  { href: "/", label: "Home", icon: Home, activeCheck: (pn) => pn === "/" },
+  { href: "/characters", label: "Characters", icon: Users, activeCheck: (pn) => pn.startsWith("/characters") },
+  { href: "/models", label: "3D Models", icon: Cube, activeCheck: (pn) => pn.startsWith("/models") },
+  { href: "/chapters", label: "Chapters", icon: BookOpen, activeCheck: (pn) => pn.startsWith("/chapters") },
+]
 
 export function MainNav() {
   const pathname = usePathname()
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   return (
-    <header
-      className={`sticky top-0 z-50 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 dragon-border ${
-        isScrolled ? "shadow-md" : ""
-      }`}
-    >
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <div className="hidden md:block">
-              <DragonAscii size="small" className="text-primary" />
-            </div>
-            <span className="text-xl font-bold">Sutra AR</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center space-x-1 md:space-x-2">
-            <Link href="/">
-              <Button
-                variant={pathname === "/" ? "default" : "ghost"}
-                size="sm"
-                className={`h-9 gap-1 transition-all duration-300 ${
-                  pathname === "/" ? "glow-button" : "hover:text-primary"
-                }`}
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex justify-center w-full px-4">
+      <motion.nav 
+        className="flex items-center gap-1 p-1.5 bg-neutral-800/60 backdrop-blur-lg rounded-xl shadow-2xl border border-neutral-700/80"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 15, delay: 0.2 }}
+      >
+        {navItems.map((item) => {
+          const isActive = item.activeCheck ? item.activeCheck(pathname) : pathname === item.href
+          return (
+            <Link key={item.href} href={item.href} passHref>
+              <motion.div
+                onHoverStart={() => setHoveredItem(item.label)}
+                onHoverEnd={() => setHoveredItem(null)}
+                className="relative"
               >
-                <Home className="h-4 w-4" />
-                <span className="hidden md:inline">Home</span>
-              </Button>
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  size="icon"
+                  className={`w-11 h-11 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-110 ${isActive ? 'bg-primary/80 text-primary-foreground shadow-md' : 'text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700/70'}`}
+                  aria-label={item.label}
+                >
+                  <item.icon className={`h-5 w-5 transition-transform duration-200 ${hoveredItem === item.label ? 'scale-110' : 'scale-100'}`} />
+                </Button>
+                {hoveredItem === item.label && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-neutral-900 text-white text-xs rounded-md shadow-lg whitespace-nowrap pointer-events-none"
+                  >
+                    {item.label}
+                  </motion.div>
+                )}
+              </motion.div>
             </Link>
-            <Link href="/characters">
-              <Button
-                variant={pathname.startsWith("/characters") ? "default" : "ghost"}
-                size="sm"
-                className={`h-9 gap-1 transition-all duration-300 ${
-                  pathname.startsWith("/characters") ? "glow-button" : "hover:text-primary"
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                <span className="hidden md:inline">Characters</span>
-              </Button>
-            </Link>
-            <Link href="/models">
-              <Button
-                variant={pathname.startsWith("/models") ? "default" : "ghost"}
-                size="sm"
-                className={`h-9 gap-1 transition-all duration-300 ${
-                  pathname.startsWith("/models") ? "glow-button" : "hover:text-primary"
-                }`}
-              >
-                <Cube className="h-4 w-4" />
-                <span className="hidden md:inline">3D Models</span>
-              </Button>
-            </Link>
-            <Link href="/chapters">
-              <Button
-                variant={pathname.startsWith("/chapters") ? "default" : "ghost"}
-                size="sm"
-                className={`h-9 gap-1 transition-all duration-300 ${
-                  pathname.startsWith("/chapters") ? "glow-button" : "hover:text-primary"
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                <span className="hidden md:inline">Chapters</span>
-              </Button>
-            </Link>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-2">
+          )
+        })}
+        <div className="ml-1 border-l border-neutral-700/50 pl-2 flex items-center">
           <ModeToggle />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
         </div>
-      </div>
-
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <nav className="flex flex-col p-4 space-y-2">
-            <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant={pathname === "/" ? "default" : "ghost"} className="w-full justify-start">
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Button>
-            </Link>
-            <Link href="/characters" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button
-                variant={pathname.startsWith("/characters") ? "default" : "ghost"}
-                className="w-full justify-start"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Characters
-              </Button>
-            </Link>
-            <Link href="/models" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant={pathname.startsWith("/models") ? "default" : "ghost"} className="w-full justify-start">
-                <Cube className="h-4 w-4 mr-2" />
-                3D Models
-              </Button>
-            </Link>
-            <Link href="/chapters" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant={pathname.startsWith("/chapters") ? "default" : "ghost"} className="w-full justify-start">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Chapters
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      )}
-    </header>
+      </motion.nav>
+    </div>
   )
 }

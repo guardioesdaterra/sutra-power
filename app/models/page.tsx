@@ -6,27 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { CuboidIcon as Cube, Eye } from "lucide-react"
 import { ModelViewer } from "@/components/model-viewer"
-import { getModels, getCharacters } from "@/lib/data"
+import { getModels, Model } from "@/lib/data"
 
 export default function ModelsPage() {
-  const [models, setModels] = useState([])
-  const [characters, setCharacters] = useState({})
+  const [models, setModels] = useState<Model[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const modelsData = await getModels()
-        const charactersData = await getCharacters()
-
-        // Create a map of character IDs to names for quick lookup
-        const characterMap = {}
-        charactersData.forEach((char) => {
-          characterMap[char.id] = char.name
-        })
-
         setModels(modelsData)
-        setCharacters(characterMap)
         setIsLoading(false)
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -34,7 +24,7 @@ export default function ModelsPage() {
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [])
 
   if (isLoading) {

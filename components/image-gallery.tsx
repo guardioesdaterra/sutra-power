@@ -7,24 +7,33 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Trash2, Edit, Plus, X, Check } from "lucide-react"
+import { Trash2, Edit, Plus, X, Check, Star, Upload } from "lucide-react"
 import type { CharacterImage } from "@/lib/data"
 
 interface ImageGalleryProps {
   images: CharacterImage[]
   onAddImage: (image: Omit<CharacterImage, "id">) => void
-  onRemoveImage: (imageId: string) => void
+  onRemoveImage: (imageId: string) => Promise<void>
   onUpdateCaption: (imageId: string, caption: string) => void
+  onSetMainImage?: (imageUrl: string) => void
+  mainImageUrl?: string
 }
 
-export function ImageGallery({ images, onAddImage, onRemoveImage, onUpdateCaption }: ImageGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState<CharacterImage | null>(null)
+export function ImageGallery({ 
+  images, 
+  onAddImage, 
+  onRemoveImage, 
+  onUpdateCaption,
+  onSetMainImage,
+  mainImageUrl
+}: ImageGalleryProps) {
   const [editingCaption, setEditingCaption] = useState<string | null>(null)
   const [newCaption, setNewCaption] = useState("")
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null)
 
   const handleEditCaption = (image: CharacterImage) => {
     setEditingCaption(image.id)
-    setNewCaption(image.caption || "")
+    setNewCaption(image.caption ?? "")
   }
 
   const handleSaveCaption = (imageId: string) => {
@@ -35,35 +44,69 @@ export function ImageGallery({ images, onAddImage, onRemoveImage, onUpdateCaptio
   const handleCancelEdit = () => {
     setEditingCaption(null)
   }
+  
+  const handleRemoveImageLogic = async (imageId: string) => {
+    if (!confirm("Are you sure you want to remove this image? This action cannot be undone.")) {
+      return;
+    }
+    setDeletingImageId(imageId);
+    try {
+      await onRemoveImage(imageId);
+    } catch (error) {
+      console.error("Error removing image:", error);
+    } finally {
+      setDeletingImageId(null);
+    }
+  }
+  
+  const onRemoveImageHandler = (imageId: string) => {
+    void handleRemoveImageLogic(imageId);
+  }
+  
+  const handleSetMainImage = (image: CharacterImage) => {
+    if (onSetMainImage) {
+      onSetMainImage(image.url);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {images.map((image) => (
-          <Card key={image.id} className="overflow-hidden">
+          <Card key={image.id} className={`overflow-hidden ${image.url === mainImageUrl ? 'ring-2 ring-primary' : ''}`}>
             <div className="aspect-square relative cursor-pointer">
               <Dialog>
                 <DialogTrigger asChild>
                   <div className="w-full h-full">
                     <Image
-                      src={image.url || "/placeholder.svg"}
-                      alt={image.caption || "Character image"}
+                      src={image.url ?? "/placeholder.svg"}
+                      alt={image.caption ?? "Character image"}
                       fill
                       className="object-cover hover:opacity-90 transition-opacity"
                     />
+                    {image.url === mainImageUrl && (
+                      <div className="absolute top-2 right-2 bg-primary rounded-full p-1" title="Main image">
+                        <Star className="h-4 w-4 text-primary-foreground" fill="currentColor" />
+                      </div>
+                    )}
                   </div>
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl" aria-describedby={`image-${image.id}-description`}>
                   <div className="relative aspect-square w-full">
                     <Image
-                      src={image.url || "/placeholder.svg"}
-                      alt={image.caption || "Character image"}
+                      src={image.url ?? "/placeholder.svg"}
+                      alt={image.caption ?? "Character image"}
                       fill
                       className="object-contain"
                     />
                   </div>
                   <p id={`image-${image.id}-description`} className="text-center mt-2">
-                    {image.caption || "No caption available"}
+                    {image.caption ?? "No caption available"}
+                    {image.url === mainImageUrl && (
+                      <span className="ml-2 inline-flex items-center text-primary font-semibold">
+                        <Star className="h-4 w-4 mr-1" fill="currentColor" /> Main Image
+                      </span>
+                    )}
                   </p>
                 </DialogContent>
               </Dialog>
@@ -86,18 +129,34 @@ export function ImageGallery({ images, onAddImage, onRemoveImage, onUpdateCaptio
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground truncate">{image.caption || "No caption"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{image.caption ?? "No caption"}</p>
                   <div className="flex gap-1">
+                    {onSetMainImage && image.url !== mainImageUrl && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleSetMainImage(image)} 
+                        className="h-8 w-8 text-amber-500"
+                        title="Set as main image"
+                      >
+                        <Star className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => handleEditCaption(image)} className="h-8 w-8">
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onRemoveImage(image.id)}
+                      onClick={() => onRemoveImageHandler(image.id)}
                       className="h-8 w-8 text-destructive hover:text-destructive"
+                      disabled={deletingImageId === image.id}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deletingImageId === image.id ? (
+                        <div className="h-4 w-4 border-2 border-t-transparent border-destructive rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -112,45 +171,42 @@ export function ImageGallery({ images, onAddImage, onRemoveImage, onUpdateCaptio
   )
 }
 
-function ImageUploadCard({ onAddImage }) {
+function ImageUploadCard({ onAddImage }: { onAddImage: (image: Omit<CharacterImage, "id">) => void }) {
   const [isUploading, setIsUploading] = useState(false)
-  const [imageFile, setImageFile] = useState(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState("")
   const [caption, setCaption] = useState("")
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (file) {
       setImageFile(file)
-      // Create a preview URL
       const reader = new FileReader()
       reader.onload = () => {
-        setPreviewUrl(reader.result)
+        const result = reader.result as string
+        setPreviewUrl(result)
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const handleUpload = async () => {
-    if (!imageFile) return
-
+  const handleUploadLogic = async () => {
+    if (!imageFile || !previewUrl) return
     setIsUploading(true)
-
     try {
-      // This would normally upload to a storage service
-      // For this example, we're just simulating the upload
       await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Add the new image
-      onAddImage({
-        url: previewUrl,
-        caption: caption,
-      })
-
-      // Reset form
-      setImageFile(null)
-      setPreviewUrl("")
-      setCaption("")
+      if (!previewUrl.includes('placeholder.svg')) {
+        onAddImage({
+          url: previewUrl,
+          caption: caption,
+        })
+        setImageFile(null)
+        setPreviewUrl("")
+        setCaption("")
+      } else {
+        console.error("Cannot use placeholder as image URL")
+        alert("Invalid image. Please select a real image file.")
+      }
     } catch (error) {
       console.error("Error uploading image:", error)
       alert("Failed to upload image. Please try again.")
@@ -158,12 +214,16 @@ function ImageUploadCard({ onAddImage }) {
       setIsUploading(false)
     }
   }
+  
+  const onUploadHandler = () => {
+    void handleUploadLogic();
+  }
 
   return (
     <Card className="overflow-hidden border-dashed">
       <div className="aspect-square relative">
         {previewUrl ? (
-          <Image src={previewUrl || "/placeholder.svg"} alt="Preview" fill className="object-cover" />
+          <Image src={previewUrl} alt="Preview" fill className="object-cover" />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-muted/30 dark:bg-muted/10 p-4">
             <Plus className="h-8 w-8 text-muted-foreground mb-2" />
@@ -195,7 +255,12 @@ function ImageUploadCard({ onAddImage }) {
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleUpload} disabled={isUploading}>
+            <Button onClick={onUploadHandler} disabled={isUploading || !imageFile} className="mt-4 w-full gap-2">
+              {isUploading ? (
+                <div className="h-4 w-4 border-2 border-t-transparent border-primary-foreground rounded-full animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
               {isUploading ? "Uploading..." : "Add Image"}
             </Button>
           </div>

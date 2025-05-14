@@ -6,10 +6,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, CuboidIcon as Cube } from "lucide-react"
 
-export function ModelUploader({ onUpload, initialModel = "" }) {
+interface ModelUploaderProps {
+  onUpload: (url: string) => void
+  initialModel?: string
+}
+
+export function ModelUploader({ onUpload, initialModel = "" }: ModelUploaderProps) {
   const [isUploading, setIsUploading] = useState(false)
-  const [modelFile, setModelFile] = useState(null)
-  const [currentModel, setCurrentModel] = useState("")
+  const [modelFile, setModelFile] = useState<File | null>(null)
+  const [currentModel, setCurrentModel] = useState<string>("")
+  const [uploadError, setUploadError] = useState<string>("")
 
   useEffect(() => {
     if (initialModel) {
@@ -17,36 +23,67 @@ export function ModelUploader({ onUpload, initialModel = "" }) {
     }
   }, [initialModel])
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (file) {
       setModelFile(file)
+      setUploadError("")
     }
   }
 
-  const handleUpload = async () => {
+  const handleUploadLogic = async () => {
     if (!modelFile) return
-
     setIsUploading(true)
-
+    setUploadError("")
     try {
-      // This would normally upload to a storage service
-      // For this example, we're just simulating the upload
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const validExtensions = [".glb", ".gltf"]
+      const fileExtension = modelFile.name.substring(modelFile.name.lastIndexOf(".")).toLowerCase()
+      if (!validExtensions.includes(fileExtension)) {
+        throw new Error("Invalid file type. Only .glb or .gltf files are supported.")
+      }
 
-      // Simulate a successful upload with a fake URL
-      const fakeModelUrl = `/uploads/models/${modelFile.name}`
-      setCurrentModel(fakeModelUrl)
-      onUpload(fakeModelUrl)
+      const formData = new FormData();
+      formData.append("modelFile", modelFile);
 
-      // Success message
-      alert(`Model "${modelFile.name}" uploaded successfully!`)
+      const response = await fetch('/api/upload-model', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let serverMessage = "File upload failed. Please try again.";
+        try {
+          const errorData = await response.json();
+          if (errorData?.message) {
+            serverMessage = errorData.message;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (_parseError) {
+          serverMessage = response.statusText ?? serverMessage;
+        }
+        throw new Error(serverMessage);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.filePath) {
+        setCurrentModel(result.filePath)
+        onUpload(result.filePath)
+        console.log(`Model "${modelFile.name}" uploaded successfully to ${result.filePath}!`)
+      } else {
+        throw new Error(result.message ?? "Upload succeeded but no filepath was returned.");
+      }
+
     } catch (error) {
       console.error("Error uploading model:", error)
-      alert("Failed to upload model. Please try again.")
+      setUploadError(error instanceof Error ? error.message : "Failed to upload model")
     } finally {
       setIsUploading(false)
     }
+  }
+
+  const onUploadHandler = () => {
+    void handleUploadLogic();
   }
 
   return (
@@ -58,7 +95,7 @@ export function ModelUploader({ onUpload, initialModel = "" }) {
               <Cube className="h-5 w-5 text-muted-foreground" />
               <span className="font-medium">Current Model</span>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setCurrentModel("")} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => { setModelFile(null); setCurrentModel(""); setUploadError("");}} className="text-xs">
               Change Model
             </Button>
           </div>
@@ -80,6 +117,10 @@ export function ModelUploader({ onUpload, initialModel = "" }) {
               </Label>
               <Input id="model-file" type="file" accept=".glb,.gltf" onChange={handleFileChange} />
             </div>
+            
+            {uploadError && (
+              <p className="text-sm text-red-500 mt-2">{uploadError}</p>
+            )}
           </div>
 
           {modelFile && (
@@ -87,11 +128,11 @@ export function ModelUploader({ onUpload, initialModel = "" }) {
               <div className="flex items-center gap-2">
                 <Cube className="h-5 w-5 text-muted-foreground" />
                 <span className="font-medium">{modelFile.name}</span>
-                <span className="text-xs text-muted-foreground">({Math.round(modelFile.size / 1024)} KB)</span>
+                <span className="text-xs text-muted-foreground">({modelFile.size > 0 ? Math.round(modelFile.size / 1024) : 0} KB)</span>
               </div>
-              <Button onClick={handleUpload} disabled={isUploading} className="gap-2">
+              <Button onClick={onUploadHandler} disabled={isUploading} className="gap-2">
                 <Upload className="h-4 w-4" />
-                {isUploading ? "Uploading..." : "Upload"}
+                {isUploading ? "Uploading..." : "Use Model"}
               </Button>
             </div>
           )}

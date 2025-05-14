@@ -1,6 +1,6 @@
 // This file contains the summaries for each character from the Sutra
 
-const sutraSummaries = {
+const sutraSummaries: Record<number, string | undefined> = {
   1: `<h3>Buda Śākyamuni (Capítulo 1: Introdução)</h3>
       <p>O Buda Śākyamuni está em Jetavana em Śrāvastī com cinco mil bodhisattvas e quinhentos śrāvakas. Em suas mentes, eles desejam um ensinamento e, portanto, o Buda entra em samādhi, e incontáveis reinos búdicos aparecem ali dentro de um vasto kūṭāgāra. Os bodhisattvas também vêm de outros reinos para o Śrāvastī. Os śrāvakas, desprovidos do mérito necessário, são incapazes de ver esta exibição milagrosa.</p>`,
 
@@ -171,7 +171,7 @@ const sutraSummaries = {
        <p>Sudhana tem grande realização e raízes de mérito, e por isso ocorrem dez eventos e dez luzes que são presságios do aparecimento de Samantabhadra. Sudhana vê Samantabhadra sentado diante do Buda, e vê uma variedade de eventos milagrosos que se manifestam a partir dos poros de Samantabhadra e das atividades de Samantabhadra em incontáveis reinos e através do tempo. Como resultado, ele alcança dez práticas da perfeição do conhecimento. Então Samantabhadra e todos aqueles Samantabhadras antes de cada buda colocam suas mãos sobre a cabeça de Sudhana, e ele obtém grandes realizações.</p>`,
 }
 
-export async function getSutraSummary(characterId: number): Promise<string> {
+export function getSutraSummary(characterId: number): string {
   // In a real app, this would fetch from a database or API
-  return sutraSummaries[characterId] || `<p>No summary available for character ID ${characterId}.</p>`
+  return sutraSummaries[characterId] ?? `<p>No summary available for character ID ${characterId}.</p>`
 }

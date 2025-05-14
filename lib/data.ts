@@ -1,20 +1,22 @@
 // This file contains functions to interact with data storage
-// We're using localStorage for persistence in this example
+// Using Dexie.js (IndexedDB) for data persistence
 
-export type CharacterImage = {
+import { db, Character as DexieCharacter, isIndexedDBSupported, initializeDatabase } from "./db";
+
+export interface CharacterImage {
   id: string
   url: string
   caption?: string
 }
 
-export type CharacterDocument = {
+export interface CharacterDocument {
   id: string
   url: string
   name: string
   type: "pdf" | "text"
 }
 
-export type Character = {
+export interface Character {
   id: number
   name: string
   description: string
@@ -25,14 +27,14 @@ export type Character = {
   documents: CharacterDocument[]
 }
 
-export type Chapter = {
+export interface Chapter {
   id: number
   title: string
   content: string
   characterId: number
 }
 
-export type Model = {
+export interface Model {
   id: number
   name: string
   description: string
@@ -41,7 +43,7 @@ export type Model = {
 }
 
 // Real character names from the provided list
-const characterNames = [
+const characterNames: string[] = [
   "Buda Śākyamuni",
   "Samantabhadra",
   "Manjushri",
@@ -98,7 +100,7 @@ const characterNames = [
 ]
 
 // Placeholder descriptions for each character
-const descriptions = [
+const descriptions: string[] = [
   "The historical Buddha, founder of Buddhism",
   "Bodhisattva of practice and meditation",
   "Bodhisattva of wisdom and intelligence",
@@ -156,26 +158,52 @@ const descriptions = [
 
 // Generate initial data with the real names
 const generateInitialCharacters = (): Character[] => {
-  return Array.from({ length: 54 }, (_, i) => ({
-    id: i + 1,
-    name: characterNames[i],
-    description: descriptions[i] || `A character from the ancient Buddhist Sutra`,
-    imageUrl: `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(characterNames[i])}`,
-    images: [
-      {
-        id: `main-${i + 1}`,
-        url: `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(characterNames[i])}`,
-        caption: `Main image of ${characterNames[i]}`,
-      },
-    ],
-    modelUrl: "/assets/3d/duck.glb",
-    chapterText: `<h2>Chapter ${i + 1}: The Teachings of ${characterNames[i]}</h2>
-      <p>In ancient times, when the Buddha was residing at the Jetavana monastery, ${characterNames[i]} approached and spoke about the nature of wisdom.</p>
-      <p>"The path to enlightenment requires diligent practice and deep understanding. One who is mindful observes the rising and falling of phenomena, and through this observation, insight develops."</p>
-      <p>${characterNames[i]} continued, "Just as a skilled craftsman can distinguish between different types of wood, a wise person can distinguish between wholesome and unwholesome states of mind."</p>
-      <p>This teaching was given to help the disciples develop their understanding of the path to liberation.</p>`,
-    documents: [],
-  }))
+  return Array.from({ length: 54 }, (_, i) => {
+    // Create more realistic image URLs for main characters
+    let imageUrl = `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(characterNames[i])}`;
+    
+    // For primary characters, use sample Buddhist imagery
+    if (i < 5) {
+      // These are sample image paths that would be used in production
+      const sampleImages = [
+        "/assets/buddha.jpg",
+        "/assets/samantabhadra.jpg", 
+        "/assets/manjushri.jpg",
+        "/assets/meghashri.jpg",
+        "/assets/sagaramegha.jpg"
+      ];
+      imageUrl = sampleImages[i];
+    }
+    
+    return {
+      id: i + 1,
+      name: characterNames[i],
+      description: descriptions[i] ?? `A character from the ancient Buddhist Sutra`,
+      imageUrl: imageUrl,
+      images: [
+        {
+          id: `main-${i + 1}`,
+          url: imageUrl,
+          caption: `Main image of ${characterNames[i]}`,
+        },
+        // Add some additional sample images for primary characters
+        ...(i < 5 ? [
+          {
+            id: `alt-${i + 1}`,
+            url: `/assets/${characterNames[i].toLowerCase().replace(/\s/g, '-')}-alt.jpg`,
+            caption: `Alternative portrayal of ${characterNames[i]}`,
+          }
+        ] : [])
+      ],
+      modelUrl: "/assets/astronaut.glb", // Use our local astronaut model
+      chapterText: `<h2>Chapter ${i + 1}: The Teachings of ${characterNames[i]}</h2>
+        <p>In ancient times, when the Buddha was residing at the Jetavana monastery, ${characterNames[i]} approached and spoke about the nature of wisdom.</p>
+        <p>"The path to enlightenment requires diligent practice and deep understanding. One who is mindful observes the rising and falling of phenomena, and through this observation, insight develops."</p>
+        <p>${characterNames[i]} continued, "Just as a skilled craftsman can distinguish between different types of wood, a wise person can distinguish between wholesome and unwholesome states of mind."</p>
+        <p>This teaching was given to help the disciples develop their understanding of the path to liberation.</p>`,
+      documents: [],
+    };
+  });
 }
 
 const generateInitialChapters = (characters: Character[]): Chapter[] => {
@@ -200,222 +228,520 @@ const generateInitialModels = (characters: Character[]): Model[] => {
   }))
 }
 
-// Data persistence using localStorage
-const STORAGE_KEYS = {
-  CHARACTERS: "sutra-ar-characters",
-  CHAPTERS: "sutra-ar-chapters",
-  MODELS: "sutra-ar-models",
-}
-
-// Initialize data in localStorage if it doesn't exist
-const initializeData = () => {
+// Data persistence using IndexedDB via Dexie.js
+// Initialize data in IndexedDB if it doesn't exist
+const initializeData = async () => {
   if (typeof window === "undefined") return
 
-  // Check if data exists in localStorage
-  if (!localStorage.getItem(STORAGE_KEYS.CHARACTERS)) {
-    const characters = generateInitialCharacters()
-    const chapters = generateInitialChapters(characters)
-    const models = generateInitialModels(characters)
+  try {
+    // Check if database is supported
+    if (!isIndexedDBSupported()) {
+      console.warn("IndexedDB is not supported in this browser. Falling back to in-memory data.");
+      return;
+    }
 
-    localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-    localStorage.setItem(STORAGE_KEYS.CHAPTERS, JSON.stringify(chapters))
-    localStorage.setItem(STORAGE_KEYS.MODELS, JSON.stringify(models))
+    // Initialize the database (including migration from localStorage if needed)
+    await initializeDatabase();
+
+    // Check if any data exists in the database
+    const count = await db.characters.count();
+    
+    if (count === 0) {
+      // If no data, let's populate with initial data
+      const initialCharacters = generateInitialCharacters();
+
+      // Map to DexieCharacter format for saving
+      const dexieCharactersToSave: DexieCharacter[] = initialCharacters.map(c => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        imageUrl: c.imageUrl,
+        modelUrl: c.modelUrl,
+        story: c.chapterText,
+        // 'images' and 'documents' are not part of DexieCharacter, they are stored separately
+      }));
+      await db.characters.bulkPut(dexieCharactersToSave);
+
+      // Now save images separately
+      for (const char of initialCharacters) {
+        if (char.images && char.images.length > 0) {
+          const imagesToSave = char.images.map(img => ({
+            characterId: char.id, // Ensure characterId is linked
+            url: img.url,
+            caption: img.caption,
+          }));
+          await db.characterImages.bulkPut(imagesToSave);
+        }
+      }
+      console.log("Database populated with initial data.");
+    }
+  } catch (error) {
+    console.error('Error initializing data:', error);
   }
 }
+
+// Helper function to determine the main image URL consistently across the application
+export function getMainImageUrl(character: {
+  imageUrl?: string;
+  name: string;
+  images?: { url: string; caption?: string; }[];
+}): string {
+  // Use imageUrl if it exists and is not a placeholder
+  if (character.imageUrl && !character.imageUrl.includes('placeholder.svg')) {
+    return character.imageUrl;
+  }
+  
+  // Otherwise use first non-placeholder image from gallery
+  if (character.images && character.images.length > 0) {
+    const nonPlaceholder = character.images.find(img => !img.url.includes('placeholder.svg'));
+    return nonPlaceholder 
+      ? nonPlaceholder.url 
+      : character.images[character.images.length - 1].url;
+  }
+  
+  // Otherwise use placeholder
+  return `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`;
+}
+
+// Convert Dexie character format to our API format
+const convertToApiCharacter = (dexieChar: DexieCharacter & { images?: {id?: number | string, url: string, caption?: string}[] }): Character => {
+  // Convert all images from the DB, including their IDs
+  const images = dexieChar.images?.map(img => ({
+    id: img.id?.toString() ?? `img-${Math.random().toString(36).substring(2, 11)}`,
+    url: img.url,
+    caption: img.caption ?? '',
+  })) ?? [];
+  
+  // Use the helper function to determine the main image URL
+  const mainImage = getMainImageUrl({
+    imageUrl: dexieChar.imageUrl,
+    name: dexieChar.name,
+    images: images
+  });
+  
+  // Use the local astronaut model as default
+  const modelUrl = dexieChar.modelUrl ?? "/assets/astronaut.glb";
+  
+  return {
+    id: dexieChar.id!,
+    name: dexieChar.name,
+    description: dexieChar.description,
+    imageUrl: mainImage,
+    images: images,
+    modelUrl: modelUrl,
+    chapterText: dexieChar.story ?? '',
+    documents: [], // documents not implemented in Dexie schema yet
+  };
+};
 
 // Get all characters
 export async function getCharacters(): Promise<Character[]> {
   if (typeof window === "undefined") {
     // Server-side: return initial data
-    return generateInitialCharacters()
+    return generateInitialCharacters();
   }
 
-  initializeData()
-  const charactersJson = localStorage.getItem(STORAGE_KEYS.CHARACTERS)
-  return charactersJson ? JSON.parse(charactersJson) : []
+  try {
+    await initializeData();
+    
+    if (!isIndexedDBSupported()) {
+      // Fallback for browsers without IndexedDB support
+      return generateInitialCharacters();
+    }
+    
+    // Get all characters from the database
+    const dexieCharacters = await db.characters.toArray();
+    
+    // For each character, get its images
+    const characters: Character[] = [];
+    
+    for (const char of dexieCharacters) {
+      const images = await db.characterImages
+        .where('characterId')
+        .equals(char.id!)
+        .toArray();
+      
+      characters.push(convertToApiCharacter({...char, images}));
+    }
+    
+    return characters;
+  } catch (error) {
+    console.error('Error getting characters:', error);
+    return [];
+  }
 }
 
 // Get a specific character
 export async function getCharacter(id: number): Promise<Character | undefined> {
-  const characters = await getCharacters()
-  return characters.find((char) => char.id === id)
+  if (typeof window === "undefined") {
+    // Server-side: return from initial data
+    const characters = generateInitialCharacters();
+    return characters.find((char) => char.id === id);
+  }
+  
+  try {
+    await initializeData();
+    
+    if (!isIndexedDBSupported()) {
+      // Fallback for browsers without IndexedDB support
+      const characters = generateInitialCharacters();
+      return characters.find((char) => char.id === id);
+    }
+    
+    // Get character with its images from the database
+    const dexieCharacter = await db.getCharacterWithImages(id);
+    
+    if (!dexieCharacter) return undefined;
+    
+    return convertToApiCharacter(dexieCharacter);
+  } catch (error) {
+    console.error(`Error getting character ${id}:`, error);
+    return undefined;
+  }
 }
 
 // Get all chapters
 export async function getChapters(): Promise<Chapter[]> {
   if (typeof window === "undefined") {
     // Server-side: return initial data
-    const characters = await getCharacters()
-    return generateInitialChapters(characters)
+    const characters = await getCharacters();
+    return generateInitialChapters(characters);
   }
-
-  initializeData()
-  const chaptersJson = localStorage.getItem(STORAGE_KEYS.CHAPTERS)
-  return chaptersJson ? JSON.parse(chaptersJson) : []
+  
+  try {
+    await initializeData();
+    
+    // For now, we'll generate chapters based on characters
+    // In a future iteration, we could add a chapters table to the database
+    const characters = await getCharacters();
+    return generateInitialChapters(characters);
+  } catch (error) {
+    console.error('Error getting chapters:', error);
+    return [];
+  }
 }
 
 // Get a specific chapter
 export async function getChapter(id: number): Promise<Chapter | undefined> {
-  const chapters = await getChapters()
-  return chapters.find((chapter) => chapter.id === id)
+  const chapters = await getChapters();
+  return chapters.find((chapter) => chapter.id === id);
 }
 
 // Get all models
 export async function getModels(): Promise<Model[]> {
   if (typeof window === "undefined") {
     // Server-side: return initial data
-    const characters = await getCharacters()
-    return generateInitialModels(characters)
+    const characters = await getCharacters();
+    return generateInitialModels(characters);
   }
-
-  initializeData()
-  const modelsJson = localStorage.getItem(STORAGE_KEYS.MODELS)
-  return modelsJson ? JSON.parse(modelsJson) : []
+  
+  try {
+    await initializeData();
+    
+    // For now, we'll generate models based on characters
+    // In a future iteration, we could add a models table to the database
+    const characters = await getCharacters();
+    return generateInitialModels(characters);
+  } catch (error) {
+    console.error('Error getting models:', error);
+    return [];
+  }
 }
 
 // Get a specific model
 export async function getModel(id: number): Promise<Model | undefined> {
-  const models = await getModels()
-  return models.find((model) => model.id === id)
+  const models = await getModels();
+  return models.find((model) => model.id === id);
 }
 
 // Create a new character
 export async function createCharacter(character: Omit<Character, "id">): Promise<Character> {
-  const characters = await getCharacters()
-  const newCharacter = { ...character, id: characters.length + 1 }
-
-  characters.push(newCharacter)
-  localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-
-  // Also create corresponding chapter and model
-  const chapters = await getChapters()
-  const newChapter: Chapter = {
-    id: chapters.length + 1,
-    title: `Chapter ${newCharacter.id}: The Teachings of ${newCharacter.name}`,
-    content: `This is the chapter about ${newCharacter.name}.`,
-    characterId: newCharacter.id,
+  try {
+    await initializeData();
+    
+    if (!isIndexedDBSupported()) {
+      throw new Error("IndexedDB is not supported in this browser");
+    }
+    
+    // Add the character to the database
+    const characterToSave: DexieCharacter = {
+      name: character.name,
+      description: character.description,
+      imageUrl: character.imageUrl,
+      modelUrl: character.modelUrl,
+      story: character.chapterText,
+    };
+    
+    // Extract images to save separately
+    const imagesToSave = character.images?.map(img => ({
+      characterId: 0, // Will be updated after we get the character ID
+      url: img.url,
+      caption: img.caption
+    })) || [];
+    
+    // Save character with its images
+    const newId = await db.saveCharacterWithImages({
+      ...characterToSave,
+      images: imagesToSave
+    });
+    
+    // Return the saved character
+    const savedCharacter = await getCharacter(newId);
+    
+    if (!savedCharacter) {
+      throw new Error("Failed to retrieve saved character");
+    }
+    
+    return savedCharacter;
+  } catch (error) {
+    console.error('Error creating character:', error);
+    throw error;
   }
-  chapters.push(newChapter)
-  localStorage.setItem(STORAGE_KEYS.CHAPTERS, JSON.stringify(chapters))
-
-  const models = await getModels()
-  const newModel: Model = {
-    id: models.length + 1,
-    name: `${newCharacter.name} Model`,
-    description: "3D model representation of the character",
-    modelUrl: newCharacter.modelUrl,
-    characterId: newCharacter.id,
-  }
-  models.push(newModel)
-  localStorage.setItem(STORAGE_KEYS.MODELS, JSON.stringify(models))
-
-  return newCharacter
 }
 
-// Update an existing character
+// Update a character
 export async function updateCharacter(id: number, characterUpdate: Partial<Character>): Promise<Character> {
-  const characters = await getCharacters()
-  const index = characters.findIndex((char) => char.id === id)
-
-  if (index === -1) {
-    throw new Error(`Character with ID ${id} not found`)
-  }
-
-  const updatedCharacter = { ...characters[index], ...characterUpdate }
-  characters[index] = updatedCharacter
-  localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-
-  // Update corresponding model if modelUrl changed
-  if (characterUpdate.modelUrl) {
-    const models = await getModels()
-    const modelIndex = models.findIndex((model) => model.characterId === id)
-    if (modelIndex !== -1) {
-      models[modelIndex] = {
-        ...models[modelIndex],
-        modelUrl: characterUpdate.modelUrl,
-        name: characterUpdate.name ? `${characterUpdate.name} Model` : models[modelIndex].name,
-      }
-      localStorage.setItem(STORAGE_KEYS.MODELS, JSON.stringify(models))
+  try {
+    await initializeData();
+    
+    if (!isIndexedDBSupported()) {
+      throw new Error("IndexedDB is not supported in this browser");
     }
-  }
-
-  // Update corresponding chapter if name changed
-  if (characterUpdate.name) {
-    const chapters = await getChapters()
-    const chapterIndex = chapters.findIndex((chapter) => chapter.characterId === id)
-    if (chapterIndex !== -1) {
-      chapters[chapterIndex] = {
-        ...chapters[chapterIndex],
-        title: `Chapter ${id}: The Teachings of ${characterUpdate.name}`,
-      }
-      localStorage.setItem(STORAGE_KEYS.CHAPTERS, JSON.stringify(chapters))
+    
+    // Get existing character
+    const existingCharacter = await db.getCharacterWithImages(id);
+    
+    if (!existingCharacter) {
+      throw new Error(`Character with ID ${id} not found`);
     }
+    
+    // Determine which images to use
+    const imagesToSave = characterUpdate.images 
+      ? characterUpdate.images.map(img => ({
+          characterId: id,
+          id: img.id ? Number(img.id.toString().replace(/\D/g, "")) || undefined : undefined,
+          url: img.url,
+          caption: img.caption
+        }))
+      : existingCharacter.images;
+      
+    // Determine main image URL with consistent rules
+    let imageUrl = characterUpdate.imageUrl;
+    
+    // If imageUrl is explicitly provided, use that
+    if (imageUrl) {
+      // Use it as-is - explicit user choice  
+    }
+    // If no imageUrl is provided but there are images
+    else if (!imageUrl && imagesToSave && imagesToSave.length > 0) {
+      // First try to use the existing imageUrl if it's still valid
+      if (existingCharacter.imageUrl && !existingCharacter.imageUrl.includes('placeholder.svg')) {
+        // Make sure the image still exists in the gallery
+        const imageStillExists = imagesToSave.some(img => img.url === existingCharacter.imageUrl);
+        if (imageStillExists) {
+          imageUrl = existingCharacter.imageUrl;
+        } else {
+          // Find first non-placeholder image
+          const nonPlaceholder = imagesToSave.find(img => !img.url.includes('placeholder.svg'));
+          imageUrl = nonPlaceholder ? nonPlaceholder.url : imagesToSave[imagesToSave.length - 1].url;
+        }
+      } else {
+        // Find first non-placeholder image
+        const nonPlaceholder = imagesToSave.find(img => !img.url.includes('placeholder.svg'));
+        imageUrl = nonPlaceholder ? nonPlaceholder.url : imagesToSave[imagesToSave.length - 1].url;
+      }
+    } else {
+      // Keep existing image if no update is provided
+      imageUrl = existingCharacter.imageUrl;
+    }
+    
+    // Prepare the character to save
+    const characterToSave: DexieCharacter = {
+      id,
+      name: characterUpdate.name ?? existingCharacter.name,
+      description: characterUpdate.description ?? existingCharacter.description,
+      imageUrl: imageUrl,
+      modelUrl: characterUpdate.modelUrl ?? existingCharacter.modelUrl,
+      story: characterUpdate.chapterText ?? existingCharacter.story,
+    };
+    
+    // Save the updated character with its images
+    await db.saveCharacterWithImages({
+      ...characterToSave,
+      images: imagesToSave
+    });
+    
+    // Return the updated character
+    const updatedCharacter = await getCharacter(id);
+    
+    if (!updatedCharacter) {
+      throw new Error("Failed to retrieve updated character");
+    }
+    
+    return updatedCharacter;
+  } catch (error) {
+    console.error(`Error updating character ${id}:`, error);
+    throw error;
   }
-
-  return updatedCharacter
 }
 
 // Add an image to a character
-export async function addCharacterImage(characterId: number, image: Omit<CharacterImage, "id">): Promise<Character> {
-  const characters = await getCharacters()
-  const index = characters.findIndex((char) => char.id === characterId)
-
-  if (index === -1) {
-    throw new Error(`Character with ID ${characterId} not found`)
+// Define a new interface for the input type for addCharacterImage
+interface AddCharacterImageInput extends Omit<CharacterImage, "id"> {
+  setAsMain?: boolean;
+}
+export async function addCharacterImage(characterId: number, image: AddCharacterImageInput): Promise<Character> {
+  try {
+    await initializeData();
+    
+    if (!isIndexedDBSupported()) {
+      throw new Error("IndexedDB is not supported in this browser");
+    }
+    
+    // Get the character with its images
+    const character = await db.getCharacterWithImages(characterId);
+    
+    if (!character) {
+      throw new Error(`Character with ID ${characterId} not found`);
+    }
+    
+    // Add the new image
+    const images = character.images ?? [];
+    images.push({
+      characterId,
+      url: image.url,
+      caption: image.caption,
+    });
+    
+    // Update the main image only if:
+    // 1. There was no main image before OR
+    // 2. The current main image is a placeholder OR
+    // 3. The new image is explicitly marked to be used as main
+    const shouldUpdateMainImage = 
+      !character.imageUrl || 
+      character.imageUrl.includes('placeholder.svg') ||
+      image.setAsMain === true;
+    
+    const updatedCharacter = {
+      ...character,
+      images,
+      // Only update imageUrl if needed
+      imageUrl: shouldUpdateMainImage ? image.url : character.imageUrl
+    };
+    
+    // Save the updated character
+    await db.saveCharacterWithImages(updatedCharacter);
+    
+    // Return the updated character
+    const result = await getCharacter(characterId);
+    
+    if (!result) {
+      throw new Error("Failed to retrieve updated character");
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`Error adding image to character ${characterId}:`, error);
+    throw error;
   }
-
-  const newImage = { ...image, id: `img-${Date.now()}` }
-  characters[index].images = [...(characters[index].images || []), newImage]
-  localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-
-  return characters[index]
 }
 
 // Remove an image from a character
 export async function removeCharacterImage(characterId: number, imageId: string): Promise<Character> {
-  const characters = await getCharacters()
-  const index = characters.findIndex((char) => char.id === characterId)
-
-  if (index === -1) {
-    throw new Error(`Character with ID ${characterId} not found`)
+  try {
+    await initializeData();
+    
+    if (!isIndexedDBSupported()) {
+      throw new Error("IndexedDB is not supported in this browser");
+    }
+    
+    // Get the character with its images
+    const character = await db.getCharacterWithImages(characterId);
+    
+    if (!character) {
+      throw new Error(`Character with ID ${characterId} not found`);
+    }
+    
+    // Find the image being removed (for reference)
+    const removingImage = character.images?.find(img => {
+      const imgId = img.id !== undefined ? img.id.toString() : '';
+      return imgId === imageId;
+    });
+    
+    // Filter out the image to remove
+    const images = character.images?.filter(img => {
+      // Convert number IDs to string for comparison
+      const imgId = img.id !== undefined ? img.id.toString() : '';
+      return imgId !== imageId;
+    }) ?? [];
+    
+    // Check if we're removing the main image
+    const mainImageRemoved = removingImage && character.imageUrl === removingImage.url;
+    
+    // Update imageUrl if we removed the main image
+    let newMainImageUrl = character.imageUrl;
+    
+    if (mainImageRemoved) {
+      // If there are remaining images, choose the first non-placeholder
+      if (images.length > 0) {
+        const nonPlaceholder = images.find(img => !img.url.includes('placeholder.svg'));
+        newMainImageUrl = nonPlaceholder 
+          ? nonPlaceholder.url 
+          : images[images.length - 1].url;
+      } else {
+        // If no images left, use placeholder
+        newMainImageUrl = `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`;
+      }
+    }
+    
+    const updatedCharacter = {
+      ...character,
+      images,
+      imageUrl: mainImageRemoved ? newMainImageUrl : character.imageUrl
+    };
+    
+    // Save the updated character
+    await db.saveCharacterWithImages(updatedCharacter);
+    
+    // Return the updated character
+    const result = await getCharacter(characterId);
+    
+    if (!result) {
+      throw new Error("Failed to retrieve updated character");
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`Error removing image ${imageId} from character ${characterId}:`, error);
+    throw error;
   }
-
-  characters[index].images = characters[index].images.filter((img) => img.id !== imageId)
-  localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-
-  return characters[index]
 }
 
-// Add a document to a character
+// Document functions are currently stubs since we haven't implemented document storage in the database yet
+// We can improve these in a future iteration
+
 export async function addCharacterDocument(
   characterId: number,
-  document: Omit<CharacterDocument, "id">,
+  _documentData: Omit<CharacterDocument, "id">,
 ): Promise<Character> {
-  const characters = await getCharacters()
-  const index = characters.findIndex((char) => char.id === characterId)
-
-  if (index === -1) {
-    throw new Error(`Character with ID ${characterId} not found`)
+  // For now, we'll just return the character without changes
+  // In a future iteration, we can add document support to the database
+  const character = await getCharacter(characterId);
+  if (!character) {
+    throw new Error(`Character with ID ${characterId} not found`);
   }
-
-  const newDocument = { ...document, id: `doc-${Date.now()}` }
-  characters[index].documents = [...(characters[index].documents || []), newDocument]
-  localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-
-  return characters[index]
+  return character;
 }
 
-// Remove a document from a character
-export async function removeCharacterDocument(characterId: number, documentId: string): Promise<Character> {
-  const characters = await getCharacters()
-  const index = characters.findIndex((char) => char.id === characterId)
-
-  if (index === -1) {
-    throw new Error(`Character with ID ${characterId} not found`)
+export async function removeCharacterDocument(
+  characterId: number, 
+  _documentId: string
+): Promise<Character> {
+  // For now, we'll just return the character without changes
+  // In a future iteration, we can add document support to the database
+  const character = await getCharacter(characterId);
+  if (!character) {
+    throw new Error(`Character with ID ${characterId} not found`);
   }
-
-  characters[index].documents = characters[index].documents.filter((doc) => doc.id !== documentId)
-  localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters))
-
-  return characters[index]
+  return character;
 }

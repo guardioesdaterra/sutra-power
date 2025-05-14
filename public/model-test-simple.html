@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Simple Model Viewer Test</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer@v3.0.2/dist/model-viewer.min.js"></script>
+    <style>
+        model-viewer {
+            width: 100%;
+            height: 400px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-model {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Model Viewer Test</h1>
+        <p>This is a very simple test page to verify model-viewer functionality.</p>
+        
+        <div class="test-model">
+            <h2>Astronaut Model (Local)</h2>
+            <model-viewer 
+                src="/assets/astronaut.glb"
+                auto-rotate 
+                camera-controls 
+                shadow-intensity="1"
+                alt="A 3D model of an astronaut">
+            </model-viewer>
+            <p>Path: /assets/astronaut.glb</p>
+            <p>Status: <span id="status-local" style="font-weight: bold;">Loading...</span></p>
+        </div>
+        
+        <div class="test-model">
+            <h2>Astronaut Model (Remote)</h2>
+            <model-viewer 
+                src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                auto-rotate 
+                camera-controls 
+                shadow-intensity="1"
+                alt="A 3D model of an astronaut from remote source">
+            </model-viewer>
+            <p>Path: https://modelviewer.dev/shared-assets/models/Astronaut.glb</p>
+            <p>Status: <span id="status-remote" style="font-weight: bold;">Loading...</span></p>
+        </div>
+    </div>
+    
+    <script>
+        // Simple event listeners for status updates
+        document.addEventListener('DOMContentLoaded', () => {
+            const localModel = document.querySelectorAll('model-viewer')[0];
+            const remoteModel = document.querySelectorAll('model-viewer')[1];
+            const localStatus = document.getElementById('status-local');
+            const remoteStatus = document.getElementById('status-remote');
+            
+            localModel.addEventListener('load', () => {
+                localStatus.textContent = 'Loaded successfully!';
+                localStatus.style.color = 'green';
+            });
+            
+            localModel.addEventListener('error', () => {
+                localStatus.textContent = 'Failed to load';
+                localStatus.style.color = 'red';
+            });
+            
+            remoteModel.addEventListener('load', () => {
+                remoteStatus.textContent = 'Loaded successfully!';
+                remoteStatus.style.color = 'green';
+            });
+            
+            remoteModel.addEventListener('error', () => {
+                remoteStatus.textContent = 'Failed to load';
+                remoteStatus.style.color = 'red';
+            });
+            
+            // Fallback timeout in case event handlers don't fire
+            setTimeout(() => {
+                if (localStatus.textContent === 'Loading...') {
+                    localStatus.textContent = 'Status unknown (timeout)';
+                    localStatus.style.color = 'orange';
+                }
+                if (remoteStatus.textContent === 'Loading...') {
+                    remoteStatus.textContent = 'Status unknown (timeout)';
+                    remoteStatus.style.color = 'orange';
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html> 

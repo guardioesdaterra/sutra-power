@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,42 +10,100 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { BookOpen, CuboidIcon as Cube, ImageIcon, Save, ArrowLeft } from "lucide-react"
 import { ModelUploader } from "@/components/model-uploader"
-import { ImageUploader } from "@/components/image-uploader"
+import { ImageGallery } from "@/components/image-gallery"
+import { createCharacter, Character, CharacterImage } from "@/lib/data"
+import { v4 as uuidv4 } from 'uuid'
 import { RichTextEditor } from "@/components/rich-text-editor"
 
 export default function NewCharacterPage() {
-  const [character, setCharacter] = useState({
+  const router = useRouter()
+  const [isSaving, setIsSaving] = useState(false)
+  const [character, setCharacter] = useState<Omit<Character, "id">>({
     name: "",
     description: "",
     imageUrl: "",
-    modelUrl: "",
+    modelUrl: "/assets/3d/duck.glb", // Default model
     chapterText: "",
+    images: [],
+    documents: []
   })
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setCharacter((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleImageUpload = (url) => {
-    setCharacter((prev) => ({ ...prev, imageUrl: url }))
+  const handleAddImage = (image: Omit<CharacterImage, "id">) => {
+    const newImage: CharacterImage = {
+      id: `temp-${uuidv4()}`,
+      ...image
+    }
+    
+    setCharacter((prev) => ({
+      ...prev,
+      imageUrl: image.url, // Set as main image
+      images: [...prev.images, newImage]
+    }))
+  }
+  
+  const handleRemoveImageLogic = async (imageId: string): Promise<void> => {
+    const updatedImages = character.images.filter(img => img.id !== imageId)
+    const wasMainImage = character.images.find(img => img.id === imageId)?.url === character.imageUrl
+    let newMainImage = character.imageUrl
+    if (wasMainImage) {
+      newMainImage = updatedImages.length > 0 ? updatedImages[0].url : ""
+    }
+    setCharacter(prev => ({
+      ...prev,
+      imageUrl: newMainImage,
+      images: updatedImages
+    }))
+    await Promise.resolve(); 
+  }
+  
+  const handleUpdateImageCaption = (imageId: string, caption: string) => {
+    const updatedImages = character.images.map(img => 
+      img.id === imageId ? { ...img, caption } : img
+    )
+    
+    setCharacter(prev => ({
+      ...prev,
+      images: updatedImages
+    }))
+  }
+  
+  const handleSetMainImage = (url: string) => {
+    setCharacter(prev => ({ ...prev, imageUrl: url }))
   }
 
-  const handleModelUpload = (url) => {
+  const handleModelUpload = (url: string) => {
     setCharacter((prev) => ({ ...prev, modelUrl: url }))
   }
 
-  const handleChapterTextChange = (content) => {
+  const handleChapterTextChange = (content: string) => {
     setCharacter((prev) => ({ ...prev, chapterText: content }))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // This would normally save to a database
-    console.log("Saving character:", character)
-    // Redirect to characters page after saving
-    window.location.href = "/characters"
+  const handleSubmitLogic = async (event?: React.FormEvent) => {
+    if (event) event.preventDefault();
+    setIsSaving(true)
+    
+    try {
+      const newCharacter = await createCharacter(character)
+      alert("Character created successfully!")
+      router.push(`/characters/${newCharacter.id}`)
+    } catch (error) {
+      console.error("Error creating character:", error)
+      alert("Failed to create character. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
   }
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void handleSubmitLogic();
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -61,7 +120,7 @@ export default function NewCharacterPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleFormSubmit}>
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
@@ -98,11 +157,18 @@ export default function NewCharacterPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5" />
-                Character Image
+                Character Images
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ImageUploader onUpload={handleImageUpload} />
+              <ImageGallery 
+                images={character.images}
+                onAddImage={handleAddImage}
+                onRemoveImage={handleRemoveImageLogic}
+                onUpdateCaption={handleUpdateImageCaption}
+                onSetMainImage={handleSetMainImage}
+                mainImageUrl={character.imageUrl}
+              />
             </CardContent>
           </Card>
 
@@ -132,9 +198,9 @@ export default function NewCharacterPage() {
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" size="lg" className="gap-2">
+          <Button type="submit" size="lg" className="gap-2" disabled={isSaving}>
             <Save className="h-5 w-5" />
-            Save Character
+            {isSaving ? "Saving..." : "Save Character"}
           </Button>
         </div>
       </form>

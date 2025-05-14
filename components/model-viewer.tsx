@@ -1,19 +1,48 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { RotateCw, ZoomIn, ZoomOut, Pause, Play } from "lucide-react"
 
-export function ModelViewer({ modelUrl }) {
-  const containerRef = useRef(null)
-  const modelViewerRef = useRef(null)
-  const [isAutoRotating, setIsAutoRotating] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [scriptLoaded, setScriptLoaded] = useState(false)
+interface ModelViewerProps {
+  modelUrl: string
+  alt?: string
+}
 
-  // Carrega o script do model-viewer uma única vez
-  useEffect(() => {
+// Define a type for the model-viewer element
+interface ModelViewerElement extends HTMLElement {
+  src: string;
+  alt: string;
+  setAttribute: (name: string, value: string) => void;
+  removeAttribute: (name: string) => void;
+  getCameraOrbit: () => {
+    radius: number;
+    theta: number;
+    phi: number;
+  };
+  cameraOrbit: string;
+}
+
+export function ModelViewer({ modelUrl, alt = "3D model" }: ModelViewerProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const modelViewerRef = useRef<ModelViewerElement | null>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const cleanupFunctionsRef = useRef<(() => void)[]>([])
+  const isMountedRef = useRef<boolean>(true)
+
+  const [isAutoRotating, setIsAutoRotating] = useState<boolean>(true)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [error, setError] = useState<boolean>(false)
+  const [isVisible, setIsVisible] = useState<boolean>(false)
+  const [scriptLoaded, setScriptLoaded] = useState<boolean>(false)
+
+  // Função para adicionar funções de limpeza
+  const addCleanupFunction = useCallback((fn: () => void) => {
+    cleanupFunctionsRef.current.push(fn)
+  }, [])
+
+  // Função para carregar o script do model-viewer
+  const loadModelViewerScript = useCallback(() => {
     // Verifica se o script já foi carregado
     if (document.querySelector('script[src*="model-viewer"]')) {
       setScriptLoaded(true)
@@ -23,59 +52,113 @@ export function ModelViewer({ modelUrl }) {
     const script = document.createElement("script")
     script.src = "https://unpkg.com/@google/model-viewer@v3.0.2/dist/model-viewer.min.js"
     script.type = "module"
-    script.onload = () => setScriptLoaded(true)
-    script.onerror = () => {
-      console.error("Failed to load model-viewer script")
-      setError(true)
-      setIsLoading(false)
+    
+    const handleLoad = () => {
+      if (isMountedRef.current) {
+        setScriptLoaded(true)
+      }
     }
+    
+    const handleError = () => {
+      if (isMountedRef.current) {
+        console.error("Failed to load model-viewer script")
+        setError(true)
+        setIsLoading(false)
+      }
+    }
+    
+    script.addEventListener("load", handleLoad)
+    script.addEventListener("error", handleError)
     document.head.appendChild(script)
+    
+    // Adiciona função de limpeza para remover event listeners
+    addCleanupFunction(() => {
+      script.removeEventListener("load", handleLoad)
+      script.removeEventListener("error", handleError)
+      // Não removemos o script do DOM para evitar problemas com outras instâncias
+    })
+  }, [addCleanupFunction])
+
+  // Configura o Intersection Observer para lazy loading
+  useEffect(() => {
+    const options = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    }
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries
+      setIsVisible(entry.isIntersecting)
+    }
+
+    observerRef.current = new IntersectionObserver(handleIntersection, options)
+    
+    if (containerRef.current) {
+      observerRef.current.observe(containerRef.current)
+    }
 
     return () => {
-      // Não removemos o script para evitar problemas com outras instâncias
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
     }
   }, [])
 
-  // Configura o model-viewer quando o script estiver carregado
+  // Carrega o script quando o componente se torna visível
   useEffect(() => {
-    if (!scriptLoaded) return
+    if (isVisible && !scriptLoaded && !error) {
+      loadModelViewerScript()
+    }
+  }, [isVisible, scriptLoaded, error, loadModelViewerScript])
 
-    let isMounted = true
-    let modelViewerElement = null
+  // Configura o model-viewer quando o script estiver carregado e o componente estiver visível
+  useEffect(() => {
+    if (!scriptLoaded || !isVisible) return
+
+    let checkInterval: NodeJS.Timeout | null = null
+    let timeoutId: NodeJS.Timeout | null = null
 
     const setupModelViewer = async () => {
       try {
         // Aguarda o elemento personalizado ser registrado
         if (!customElements.get("model-viewer")) {
-          const checkInterval = setInterval(() => {
+          checkInterval = setInterval(() => {
             if (customElements.get("model-viewer")) {
-              clearInterval(checkInterval)
+              clearInterval(checkInterval!)
               createModelViewer()
             }
           }, 100)
 
           // Timeout de segurança
-          setTimeout(() => {
-            clearInterval(checkInterval)
-            if (isMounted && !customElements.get("model-viewer")) {
+          timeoutId = setTimeout(() => {
+            if (checkInterval) clearInterval(checkInterval)
+            if (isMountedRef.current && !customElements.get("model-viewer")) {
               setError(true)
               setIsLoading(false)
             }
           }, 5000)
+          
+          // Adiciona função de limpeza para os timers
+          addCleanupFunction(() => {
+            if (checkInterval) clearInterval(checkInterval)
+            if (timeoutId) clearTimeout(timeoutId)
+          })
         } else {
           createModelViewer()
         }
       } catch (err) {
         console.error("Error setting up model viewer:", err)
-        if (isMounted) {
+        if (isMountedRef.current) {
           setError(true)
           setIsLoading(false)
         }
       }
+      await Promise.resolve();
     }
 
     const createModelViewer = () => {
-      if (!containerRef.current || !isMounted) return
+      if (!containerRef.current || !isMountedRef.current) return
 
       // Limpa o container com segurança
       while (containerRef.current.firstChild) {
@@ -83,9 +166,9 @@ export function ModelViewer({ modelUrl }) {
       }
 
       // Cria o elemento model-viewer
-      modelViewerElement = document.createElement("model-viewer")
+      const modelViewerElement = document.createElement("model-viewer") as ModelViewerElement
       modelViewerElement.src = modelUrl
-      modelViewerElement.alt = "3D model"
+      modelViewerElement.alt = alt
       modelViewerElement.setAttribute("camera-controls", "")
       modelViewerElement.setAttribute("auto-rotate", "")
       modelViewerElement.setAttribute("shadow-intensity", "1")
@@ -95,14 +178,14 @@ export function ModelViewer({ modelUrl }) {
 
       // Adiciona eventos
       const loadHandler = () => {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setIsLoading(false)
           modelViewerRef.current = modelViewerElement
         }
       }
 
       const errorHandler = () => {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setError(true)
           setIsLoading(false)
         }
@@ -114,29 +197,51 @@ export function ModelViewer({ modelUrl }) {
       // Adiciona ao DOM
       containerRef.current.appendChild(modelViewerElement)
 
-      // Armazena referências para limpeza
-      return () => {
+      // Adiciona função de limpeza para os event listeners e referência
+      addCleanupFunction(() => {
         if (modelViewerElement) {
           modelViewerElement.removeEventListener("load", loadHandler)
           modelViewerElement.removeEventListener("error", errorHandler)
+          
+          // Limpa referências para ajudar o garbage collector
+          modelViewerRef.current = null
+          
+          // Tenta liberar recursos WebGL
+          try {
+            // Tenta remover o elemento do DOM se ainda estiver presente
+            if (containerRef.current?.contains(modelViewerElement)) {
+              containerRef.current?.removeChild(modelViewerElement)
+            }
+          } catch (err) {
+            console.error("Error during cleanup:", err)
+          }
         }
-      }
+      })
     }
 
     setIsLoading(true)
     setError(false)
-    const cleanup = setupModelViewer()
+    void setupModelViewer()
 
-    // Cleanup
+    // Cleanup principal
     return () => {
-      isMounted = false
-      if (cleanup) cleanup()
-      // Não manipulamos o DOM aqui para evitar o erro
+      // Executa todas as funções de limpeza registradas
+      cleanupFunctionsRef.current.forEach(cleanup => cleanup())
+      // Limpa o array de funções de limpeza
+      cleanupFunctionsRef.current = []
     }
-  }, [scriptLoaded, modelUrl])
+  }, [scriptLoaded, modelUrl, isVisible, alt, addCleanupFunction])
 
-  const handleZoomIn = () => {
-    if (modelViewerRef.current && modelViewerRef.current.getCameraOrbit) {
+  // Marca o componente como desmontado quando for removido
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  // Handlers de interação com o modelo
+  const handleZoomIn = useCallback(() => {
+    if (modelViewerRef.current?.getCameraOrbit) {
       try {
         const orbit = modelViewerRef.current.getCameraOrbit()
         const newOrbit = {
@@ -149,10 +254,10 @@ export function ModelViewer({ modelUrl }) {
         console.error("Error zooming in:", error)
       }
     }
-  }
+  }, [])
 
-  const handleZoomOut = () => {
-    if (modelViewerRef.current && modelViewerRef.current.getCameraOrbit) {
+  const handleZoomOut = useCallback(() => {
+    if (modelViewerRef.current?.getCameraOrbit) {
       try {
         const orbit = modelViewerRef.current.getCameraOrbit()
         const newOrbit = {
@@ -165,21 +270,38 @@ export function ModelViewer({ modelUrl }) {
         console.error("Error zooming out:", error)
       }
     }
-  }
+  }, [])
 
-  const handleRotate = () => {
+  const handleRotate = useCallback(() => {
     if (modelViewerRef.current) {
       try {
-        setIsAutoRotating(!isAutoRotating)
-        if (isAutoRotating) {
-          modelViewerRef.current.removeAttribute("auto-rotate")
-        } else {
-          modelViewerRef.current.setAttribute("auto-rotate", "")
-        }
+        setIsAutoRotating(prevState => {
+          const newState = !prevState
+          if (newState) {
+            modelViewerRef.current?.setAttribute("auto-rotate", "")
+          } else {
+            modelViewerRef.current?.removeAttribute("auto-rotate")
+          }
+          return newState
+        })
       } catch (error) {
         console.error("Error toggling rotation:", error)
       }
     }
+  }, [])
+
+  // Renderiza um placeholder quando não estiver visível
+  if (!isVisible) {
+    return (
+      <div 
+        ref={containerRef} 
+        className="w-full h-full bg-muted/20 rounded-lg flex items-center justify-center"
+      >
+        <div className="text-center p-4">
+          <p className="text-sm text-muted-foreground">3D Model will load when visible</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -202,13 +324,18 @@ export function ModelViewer({ modelUrl }) {
         </div>
       )}
 
-      {/* Mensagem de erro */}
+      {/* Fallback para dispositivos sem suporte a WebGL */}
       {error && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/30 dark:bg-muted/10 rounded-lg border-2 border-dashed">
-          <div className="text-center p-4 bg-background/80 backdrop-blur-sm rounded-lg">
+          <div className="text-center p-4 bg-background/80 backdrop-blur-sm rounded-lg max-w-md">
             <p className="text-lg font-medium mb-2 text-destructive">Failed to load 3D model</p>
             <p className="text-sm text-muted-foreground mb-4">Model: {modelUrl}</p>
-            <p className="text-xs text-muted-foreground">Please check your internet connection and try again.</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              Your device may not support WebGL or 3D rendering.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Please try using a different browser or device.
+            </p>
           </div>
         </div>
       )}
@@ -221,6 +348,7 @@ export function ModelViewer({ modelUrl }) {
             size="sm"
             className="rounded-full h-10 w-10 p-0 bg-background/80 backdrop-blur-sm hover:bg-primary/20 transition-all duration-300"
             onClick={handleZoomIn}
+            aria-label="Zoom in"
           >
             <ZoomIn className="h-5 w-5" />
           </Button>
@@ -229,6 +357,7 @@ export function ModelViewer({ modelUrl }) {
             size="sm"
             className="rounded-full h-10 w-10 p-0 bg-background/80 backdrop-blur-sm hover:bg-primary/20 transition-all duration-300"
             onClick={handleZoomOut}
+            aria-label="Zoom out"
           >
             <ZoomOut className="h-5 w-5" />
           </Button>
@@ -237,6 +366,7 @@ export function ModelViewer({ modelUrl }) {
             size="sm"
             className="rounded-full h-10 w-10 p-0 bg-background/80 backdrop-blur-sm hover:bg-primary/20 transition-all duration-300"
             onClick={handleRotate}
+            aria-label={isAutoRotating ? "Pause rotation" : "Start rotation"}
           >
             {isAutoRotating ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>

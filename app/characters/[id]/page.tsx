@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { use } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -17,21 +18,30 @@ import {
   Users,
   MessageSquare,
 } from "lucide-react"
-import { ModelViewer } from "@/components/model-viewer"
-import { getCharacter } from "@/lib/data"
+import { SimpleModelViewer } from "@/components/simple-model-viewer"
+import { getCharacter, Character, getMainImageUrl } from "@/lib/data"
 import { CharacterSummary } from "@/components/character-summary"
 import { ImageGallery } from "@/components/image-gallery-view"
 import { DragonAscii } from "@/components/dragon-ascii"
 
-export default function CharacterDetailPage({ params }) {
-  const [character, setCharacter] = useState(null)
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default function CharacterDetailPage({ params }: PageProps) {
+  // Unwrap params with use() before accessing properties
+  const unwrappedParams = use(params)
+  const { id } = unwrappedParams
+  const [character, setCharacter] = useState<Character | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("main")
 
   useEffect(() => {
     const fetchCharacter = async () => {
       try {
-        const characterData = await getCharacter(Number.parseInt(params.id))
+        const characterData = await getCharacter(Number.parseInt(id))
         if (characterData) {
           setCharacter(characterData)
         }
@@ -42,8 +52,8 @@ export default function CharacterDetailPage({ params }) {
       }
     }
 
-    fetchCharacter()
-  }, [params.id])
+    void fetchCharacter()
+  }, [id])
 
   if (isLoading) {
     return (
@@ -116,7 +126,7 @@ export default function CharacterDetailPage({ params }) {
             <Card className="lg:col-span-1 overflow-hidden neon-border card-hover-effect">
               <div className="relative w-full aspect-square">
                 <Image
-                  src={character.imageUrl || "/placeholder.svg"}
+                  src={getMainImageUrl(character) || `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`}
                   alt={character.name}
                   fill
                   className="object-cover"
@@ -162,7 +172,7 @@ export default function CharacterDetailPage({ params }) {
               </CardHeader>
               <CardContent>
                 <div className="w-full h-[250px] border rounded-lg overflow-hidden">
-                  <ModelViewer modelUrl={character.modelUrl} />
+                  <SimpleModelViewer modelUrl={character.modelUrl || "/assets/astronaut.glb"} />
                 </div>
                 <div className="mt-4 text-center">
                   <Button
@@ -217,8 +227,8 @@ export default function CharacterDetailPage({ params }) {
                   {character.images.slice(0, 5).map((image) => (
                     <div key={image.id} className="relative aspect-square group rounded-lg overflow-hidden">
                       <Image
-                        src={image.url || "/placeholder.svg"}
-                        alt={image.caption || character.name}
+                        src={image.url}
+                        alt={image.caption ?? character.name}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-110"
                       />
@@ -327,7 +337,11 @@ export default function CharacterDetailPage({ params }) {
             </CardHeader>
             <CardContent>
               {character.images && character.images.length > 0 ? (
-                <ImageGallery images={character.images} characterName={character.name} />
+                <ImageGallery 
+                  images={character.images} 
+                  characterName={character.name}
+                  mainImageUrl={getMainImageUrl(character)}
+                />
               ) : (
                 <div className="text-center p-12">
                   <DragonAscii size="small" className="mx-auto mb-4" />
@@ -348,7 +362,7 @@ export default function CharacterDetailPage({ params }) {
             </CardHeader>
             <CardContent>
               <div className="w-full h-[600px] border rounded-lg overflow-hidden">
-                <ModelViewer modelUrl={character.modelUrl} />
+                <SimpleModelViewer modelUrl={character.modelUrl || "/assets/astronaut.glb"} />
               </div>
             </CardContent>
           </Card>

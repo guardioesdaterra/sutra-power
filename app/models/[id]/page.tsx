@@ -1,22 +1,32 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, CuboidIcon as Cube } from "lucide-react"
 import { ModelViewer } from "@/components/model-viewer"
-import { getModel, getCharacter } from "@/lib/data"
+import { getModel, getCharacter, Model, Character } from "@/lib/data"
 
-export default function ModelDetailPage({ params }) {
-  const [model, setModel] = useState(null)
-  const [character, setCharacter] = useState(null)
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default function ModelDetailPage({ params }: PageProps) {
+  // Unwrap params with use() before accessing properties
+  const unwrappedParams = use(params)
+  const { id } = unwrappedParams
+  const [model, setModel] = useState<Model | null>(null)
+  const [character, setCharacter] = useState<Character | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const modelData = await getModel(Number.parseInt(params.id))
+        const modelData = await getModel(Number.parseInt(id))
         if (modelData) {
           setModel(modelData)
 
@@ -33,8 +43,8 @@ export default function ModelDetailPage({ params }) {
       }
     }
 
-    fetchData()
-  }, [params.id])
+    void fetchData()
+  }, [id])
 
   if (isLoading) {
     return (

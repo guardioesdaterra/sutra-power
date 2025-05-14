@@ -7,10 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, ImageIcon } from "lucide-react"
 
-export function ImageUploader({ onUpload, initialImage = "" }) {
+interface ImageUploaderProps {
+  onUpload: (url: string) => void
+  initialImage?: string
+}
+
+export function ImageUploader({ onUpload, initialImage = "" }: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false)
-  const [imageFile, setImageFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string>("")
 
   useEffect(() => {
     if (initialImage) {
@@ -18,34 +23,32 @@ export function ImageUploader({ onUpload, initialImage = "" }) {
     }
   }, [initialImage])
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (file) {
       setImageFile(file)
       // Create a preview URL
       const reader = new FileReader()
       reader.onload = () => {
-        setPreviewUrl(reader.result)
+        const result = reader.result as string
+        setPreviewUrl(result)
+        // Immediately pass the preview URL to the parent component
+        // This ensures we don't wait for the "Upload" button
+        onUpload(result)
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const handleUpload = async () => {
+  const handleUploadLogic = async () => {
     if (!imageFile) return
-
     setIsUploading(true)
-
     try {
-      // This would normally upload to a storage service
-      // For this example, we're just simulating the upload
       await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Simulate a successful upload with the preview URL
-      onUpload(previewUrl)
-
-      // Success message
-      alert(`Image "${imageFile.name}" uploaded successfully!`)
+      if (previewUrl && !previewUrl.includes('placeholder.svg')) {
+        onUpload(previewUrl)
+      }
+      console.log(`Image uploaded successfully!`)
     } catch (error) {
       console.error("Error uploading image:", error)
       alert("Failed to upload image. Please try again.")
@@ -54,11 +57,15 @@ export function ImageUploader({ onUpload, initialImage = "" }) {
     }
   }
 
+  const onUploadHandler = () => {
+    void handleUploadLogic();
+  }
+
   return (
     <div className="grid gap-4">
       {previewUrl ? (
         <div className="relative aspect-square w-full max-w-md mx-auto border rounded-lg overflow-hidden">
-          <Image src={previewUrl || "/placeholder.svg"} alt="Preview" fill className="object-contain" />
+          <Image src={previewUrl} alt="Preview" fill className="object-contain" />
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/30 dark:bg-muted/10 aspect-square max-w-md mx-auto">
@@ -83,7 +90,7 @@ export function ImageUploader({ onUpload, initialImage = "" }) {
             <span className="font-medium">{imageFile.name}</span>
             <span className="text-xs text-muted-foreground">({Math.round(imageFile.size / 1024)} KB)</span>
           </div>
-          <Button onClick={handleUpload} disabled={isUploading} className="gap-2">
+          <Button onClick={onUploadHandler} disabled={isUploading} className="gap-2">
             <Upload className="h-4 w-4" />
             {isUploading ? "Uploading..." : "Upload"}
           </Button>
