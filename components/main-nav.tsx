@@ -22,16 +22,18 @@ const navItems: NavItem[] = [
   { href: "/chapters", label: "Chapters", icon: BookOpen, activeCheck: (pn) => pn.startsWith("/chapters") },
 ]
 
-export const SIDEBAR_WIDTH = "w-16" // Equivalent to 4rem or 64px, adjust as needed
+export const DOCK_WIDTH = "w-16" // Renamed from SIDEBAR_WIDTH, still 4rem or 64px
 
 export function MainNav() {
   const pathname = usePathname()
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   return (
-    <div className={`fixed top-0 left-0 h-screen ${SIDEBAR_WIDTH} z-50 flex flex-col items-center justify-between py-4 bg-neutral-800/60 backdrop-blur-lg border-r border-neutral-700/80 shadow-xl`}>
+    <div 
+      className={`fixed top-1/2 left-4 -translate-y-1/2 ${DOCK_WIDTH} z-50 flex flex-col items-center bg-neutral-800/70 backdrop-blur-xl rounded-2xl shadow-2xl p-3`}
+    >
       <motion.nav 
-        className="flex flex-col items-center gap-2 p-1.5"
+        className="flex flex-col items-center gap-3"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.2 }}
@@ -51,7 +53,7 @@ export function MainNav() {
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   size="icon"
-                  className={`w-11 h-11 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-110 ${isActive ? 'bg-primary/80 text-primary-foreground shadow-md' : 'text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700/70'}`}
+                  className={`w-10 h-10 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-110 ${isActive ? 'bg-primary/90 text-primary-foreground shadow-lg' : 'text-neutral-300 hover:text-neutral-100 hover:bg-neutral-700/80'}`}
                   aria-label={item.label}
                 >
                   <item.icon className={`h-5 w-5 transition-transform duration-200 ${hoveredItem === item.label ? 'scale-110' : 'scale-100'}`} />
@@ -62,7 +64,7 @@ export function MainNav() {
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: -10, scale: 0.9 }}
                     transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-neutral-900 text-white text-xs rounded-md shadow-lg whitespace-nowrap pointer-events-none z-50"
+                    className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-neutral-900 text-white text-xs rounded-md shadow-lg whitespace-nowrap pointer-events-none z-[60]"
                   >
                     {item.label}
                   </motion.div>
@@ -72,7 +74,7 @@ export function MainNav() {
           )
         })}
       </motion.nav>
-      <div className="mt-auto flex items-center justify-center p-2">
+      <div className="mt-4 pt-3 border-t border-neutral-700/50 w-full flex items-center justify-center">
         <ModeToggle />
       </div>
     </div>
