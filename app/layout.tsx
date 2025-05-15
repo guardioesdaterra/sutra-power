@@ -4,7 +4,6 @@ import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MainNav } from "@/components/main-nav"
 import { SiteFooter } from "@/components/site-footer"
-import { Badge } from "@/components/ui/badge"
 import { AppInitializer } from "@/lib/app-initializer"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -22,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-background text-foreground`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -30,17 +29,14 @@ export default function RootLayout({
           enableColorScheme
           disableTransitionOnChange
         >
-          <div className="relative min-h-screen flex flex-col">
-            <div className="px-4 md:px-6 bg-muted/5 border-b border-muted/20">
-              <header className="container flex h-14 justify-between max-w-screen-2xl items-center">
-                <MainNav />
-                <Badge variant="outline" className="rounded-md px-2 py-1">v0.1.0</Badge>
-              </header>
-            </div>
-            <div className="flex-1">
-              {children}
-            </div>
-            <SiteFooter />
+          <div className="relative min-h-screen flex">
+            <MainNav />
+            <main className={`flex-1 flex flex-col ml-16`}>
+              <div className="flex-1 p-4 md:p-6">
+                {children}
+              </div>
+              <SiteFooter />
+            </main>
           </div>
           <AppInitializer />
         </ThemeProvider>

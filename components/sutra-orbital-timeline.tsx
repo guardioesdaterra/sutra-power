@@ -26,9 +26,9 @@ const ORBIT_RADIUS_CHARACTER = 330;
 const ORBIT_RADIUS_CHAPTER = 200;
 const NODE_SIZE_CHARACTER = 80;
 const NODE_SIZE_CHAPTER = 55;
-const MAX_CHARACTERS_DESKTOP = 19;
-const MAX_CHARACTERS_MOBILE = 13;
-const MAX_CHAPTERS_DESKTOP = 19;
+const MAX_CHARACTERS_DESKTOP = 54
+const MAX_CHARACTERS_MOBILE = 27
+const MAX_CHAPTERS_DESKTOP = 27
 const MAX_CHAPTERS_MOBILE = 13
 
 // Renamed component to reflect its new structure
@@ -267,11 +267,11 @@ export function SutraOrbitalDualMenu() {
         {characters.map((char, index) => {
           const { x, y, scale, zIndex, opacity } = characterPositions[index];
           const isActive = activeCharacter?.id === char.id;
-          return (
+            return (
             <motion.div
               key={`char-${char.id}`}
               className="absolute flex flex-col items-center justify-center cursor-pointer group"
-              style={{
+                  style={{
                 width: dimensions.charNodeSize, // Use dynamic size
                 height: dimensions.charNodeSize, // Use dynamic size
                 left: `calc(50% - ${dimensions.charNodeSize / 2}px)`,
@@ -310,7 +310,7 @@ export function SutraOrbitalDualMenu() {
         {chapters.map((chap, index) => {
           const { x, y, scale, zIndex, opacity } = chapterPositions[index];
           const isActive = activeChapter?.id === chap.id;
-          return (
+                              return (
             <motion.div
               key={`chap-${chap.id}`}
               className="absolute flex flex-col items-center justify-center cursor-pointer group"
@@ -342,8 +342,8 @@ export function SutraOrbitalDualMenu() {
                 </span>
               )}
             </motion.div>
-          );
-        })}
+                              );
+                            })}
       </motion.div>
       
       {/* Chapter Brief Display on Hover (only if no chapter is active) */}
@@ -370,14 +370,14 @@ export function SutraOrbitalDualMenu() {
           transition={{ type: "spring", stiffness: 150, damping: 25, duration: 0.3 }}
           onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside panel
         >
-          <Button 
+                          <Button
             variant="ghost" 
             size="icon"
             onClick={closeDetailPanel}
             className="absolute top-3 right-3 text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 rounded-full w-8 h-8"
           >
             &times; {/* Simple X icon */}
-          </Button>
+                          </Button>
           {activeCharacter && (
             <div className="flex flex-col items-center text-center">
               <motion.div 
@@ -397,16 +397,16 @@ export function SutraOrbitalDualMenu() {
                  >
                    Explore Character <ArrowRight className="w-4 h-4 ml-2" />
                  </motion.a>
-              </Link>
-            </div>
-          )}
+                        </Link>
+                      </div>
+                )}
           {activeChapter && (
             <div className="text-left">
               <h3 className="text-2xl font-bold text-teal-200 mb-3">{activeChapter.title}</h3>
               <div className="prose prose-sm prose-invert max-w-none max-h-[60vh] overflow-y-auto text-slate-300 pr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50 hyphens-auto" lang="en">
                 <p>{activeChapter.originalData.content}</p> 
               </div>
-            </div>
+        </div>
           )}
         </motion.div>
       )}
