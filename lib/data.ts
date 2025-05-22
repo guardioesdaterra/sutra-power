@@ -4,9 +4,9 @@
 import { db, Character as DexieCharacter, isIndexedDBSupported, initializeDatabase } from "./db";
 
 export interface CharacterImage {
-  id: string
-  url: string
-  caption?: string
+  id?: number; // Changed from string, optional for new images
+  url: string;
+  caption?: string;
 }
 
 export interface CharacterDocument {
@@ -160,48 +160,40 @@ const descriptions: string[] = [
 const generateInitialCharacters = (): Character[] => {
   return Array.from({ length: 54 }, (_, i) => {
     // Create more realistic image URLs for main characters
-    let imageUrl = `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(characterNames[i])}`;
+    let imageUrl = ""; // Set to empty string, to be user-defined
     
     // For primary characters, use sample Buddhist imagery
-    if (i < 5) {
-      // These are sample image paths that would be used in production
-      const sampleImages = [
-        "/assets/buddha.jpg",
-        "/assets/samantabhadra.jpg", 
-        "/assets/manjushri.jpg",
-        "/assets/meghashri.jpg",
-        "/assets/sagaramegha.jpg"
-      ];
-      imageUrl = sampleImages[i];
-    }
+    // if (i < 5) {
+    //   // These are sample image paths that would be used in production
+    //   const sampleImages = [
+    //     "/assets/buddha.jpg",
+    //     "/assets/samantabhadra.jpg", 
+    //     "/assets/manjushri.jpg",
+    //     "/assets/meghashri.jpg",
+    //     "/assets/sagaramegha.jpg"
+    //   ];
+    //   imageUrl = sampleImages[i];
+    // }
     
     return {
       id: i + 1,
       name: characterNames[i],
       description: descriptions[i] ?? `A character from the ancient Buddhist Sutra`,
-      imageUrl: imageUrl,
-      images: [
-        {
-          id: `main-${i + 1}`,
-          url: imageUrl,
-          caption: `Main image of ${characterNames[i]}`,
-        },
-        // Add some additional sample images for primary characters
-        ...(i < 5 ? [
-          {
-            id: `alt-${i + 1}`,
-            url: `/assets/${characterNames[i].toLowerCase().replace(/\s/g, '-')}-alt.jpg`,
-            caption: `Alternative portrayal of ${characterNames[i]}`,
-          }
-        ] : [])
-      ],
-      modelUrl: "/assets/astronaut.glb", // Use our local astronaut model
+      imageUrl: imageUrl, // Will be empty or set by user
+      images: [], // Initialize with no images
+      modelUrl: "", // Set to empty string, to be user-defined
       chapterText: `<h2>Chapter ${i + 1}: The Teachings of ${characterNames[i]}</h2>
         <p>In ancient times, when the Buddha was residing at the Jetavana monastery, ${characterNames[i]} approached and spoke about the nature of wisdom.</p>
-        <p>"The path to enlightenment requires diligent practice and deep understanding. One who is mindful observes the rising and falling of phenomena, and through this observation, insight develops."</p>
-        <p>${characterNames[i]} continued, "Just as a skilled craftsman can distinguish between different types of wood, a wise person can distinguish between wholesome and unwholesome states of mind."</p>
-        <p>This teaching was given to help the disciples develop their understanding of the path to liberation.</p>`,
-      documents: [],
+        <p>Further details and specific teachings related to ${characterNames[i]} would be populated here. This section is intended to hold rich textual content associated with the character, potentially including excerpts from sutras, commentaries, or narrative stories.</p>
+        <p>The structure of this content can be HTML, allowing for formatting such as headings, paragraphs, lists, and blockquotes to organize the information effectively. For example, one might include:</p>
+        <ul>
+          <li>Key teachings or sutras associated with ${characterNames[i]}.</li>
+          <li>Iconographic descriptions and symbolism.</li>
+          <li>Stories and legends involving the character.</li>
+          <li>Relationships with other characters in the Buddhist pantheon.</li>
+        </ul>
+        <p>This textual data is crucial for providing comprehensive information about each character within the SutraPower application.</p>`,
+      documents: [], // Added missing documents property
     };
   });
 }
@@ -286,116 +278,76 @@ export function getMainImageUrl(character: {
   name: string;
   images?: { url: string; caption?: string; }[];
 }): string {
-  // Use imageUrl if it exists and is not a placeholder
-  if (character.imageUrl && !character.imageUrl.includes('placeholder.svg')) {
+  // Use imageUrl if it exists and is not empty
+  if (character.imageUrl && character.imageUrl.trim() !== '') {
     return character.imageUrl;
   }
   
-  // Otherwise use first non-placeholder image from gallery
+  // Otherwise use first image from gallery
   if (character.images && character.images.length > 0) {
-    const nonPlaceholder = character.images.find(img => !img.url.includes('placeholder.svg'));
-    return nonPlaceholder 
-      ? nonPlaceholder.url 
-      : character.images[character.images.length - 1].url;
+    return character.images[0].url;
   }
   
-  // Otherwise use placeholder
-  return `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`;
+  // Otherwise return empty string
+  return "";
 }
 
-// Convert Dexie character format to our API format
-const convertToApiCharacter = (dexieChar: DexieCharacter & { images?: {id?: number | string, url: string, caption?: string}[] }): Character => {
-  // Convert all images from the DB, including their IDs
-  const images = dexieChar.images?.map(img => ({
-    id: img.id?.toString() ?? `img-${Math.random().toString(36).substring(2, 11)}`,
-    url: img.url,
-    caption: img.caption ?? '',
-  })) ?? [];
-  
-  // Use the helper function to determine the main image URL
-  const mainImage = getMainImageUrl({
-    imageUrl: dexieChar.imageUrl,
-    name: dexieChar.name,
-    images: images
-  });
-  
-  // Use the local astronaut model as default
-  const modelUrl = dexieChar.modelUrl ?? "/assets/astronaut.glb";
-  
+// Function to convert Dexie character (with images pre-fetched) to API-like Character
+const convertToApiCharacter = (dexieChar: DexieCharacter & { images?: CharacterImage[] }): Character => {
+  // Ensure documents array exists, even if empty
+  const documents: CharacterDocument[] = (dexieChar as any).documents || [];
+
   return {
-    id: dexieChar.id!,
+    id: dexieChar.id!, // id will exist if it's from DB
     name: dexieChar.name,
     description: dexieChar.description,
-    imageUrl: mainImage,
-    images: images,
-    modelUrl: modelUrl,
-    chapterText: dexieChar.story ?? '',
-    documents: [], // documents not implemented in Dexie schema yet
+    imageUrl: dexieChar.imageUrl || "",
+    images: dexieChar.images || [],
+    modelUrl: dexieChar.modelUrl || "",
+    chapterText: dexieChar.story || "", // Assuming chapterText maps to story in DexieCharacter
+    documents: documents
   };
 };
 
-// Get all characters
 export async function getCharacters(): Promise<Character[]> {
-  if (typeof window === "undefined") {
-    // Server-side: return initial data
-    return generateInitialCharacters();
-  }
+  if (typeof window === "undefined") return []; // Guard for SSR
 
   try {
-    await initializeData();
+    await initializeDatabase(); // Ensures DB is initialized
     
-    if (!isIndexedDBSupported()) {
-      // Fallback for browsers without IndexedDB support
-      return generateInitialCharacters();
-    }
-    
-    // Get all characters from the database
+    // Fetch all characters. Images will be fetched on demand or if we adapt this.
     const dexieCharacters = await db.characters.toArray();
     
-    // For each character, get its images
     const characters: Character[] = [];
-    
-    for (const char of dexieCharacters) {
-      const images = await db.characterImages
-        .where('characterId')
-        .equals(char.id!)
-        .toArray();
-      
-      characters.push(convertToApiCharacter({...char, images}));
+    for (const dc of dexieCharacters) {
+      // Fetch images for each character using the helper from db.ts
+      const characterWithDetails = await db.getCharacterWithImages(dc.id!);
+      if (characterWithDetails) {
+        characters.push(convertToApiCharacter(characterWithDetails as any)); // Cast needed due to DexieCharacter vs Character mismatch potential
+      }
     }
-    
     return characters;
+
   } catch (error) {
-    console.error('Error getting characters:', error);
+    console.error("Failed to get characters:", error);
     return [];
   }
 }
 
-// Get a specific character
 export async function getCharacter(id: number): Promise<Character | undefined> {
-  if (typeof window === "undefined") {
-    // Server-side: return from initial data
-    const characters = generateInitialCharacters();
-    return characters.find((char) => char.id === id);
-  }
-  
+  if (typeof window === "undefined") return undefined;
+
   try {
-    await initializeData();
+    await initializeDatabase(); // Ensures DB is initialized
     
-    if (!isIndexedDBSupported()) {
-      // Fallback for browsers without IndexedDB support
-      const characters = generateInitialCharacters();
-      return characters.find((char) => char.id === id);
+    const characterWithDetails = await db.getCharacterWithImages(id);
+    
+    if (characterWithDetails) {
+      return convertToApiCharacter(characterWithDetails as any); // Cast needed
     }
-    
-    // Get character with its images from the database
-    const dexieCharacter = await db.getCharacterWithImages(id);
-    
-    if (!dexieCharacter) return undefined;
-    
-    return convertToApiCharacter(dexieCharacter);
+    return undefined;
   } catch (error) {
-    console.error(`Error getting character ${id}:`, error);
+    console.error(`Failed to get character ${id}:`, error);
     return undefined;
   }
 }
@@ -457,13 +409,13 @@ export async function getModel(id: number): Promise<Model | undefined> {
 // Create a new character
 export async function createCharacter(character: Omit<Character, "id">): Promise<Character> {
   try {
-    await initializeData();
+    await initializeDatabase();
     
     if (!isIndexedDBSupported()) {
       throw new Error("IndexedDB is not supported in this browser");
     }
     
-    // Add the character to the database
+    // Convert the Character type to DexieCharacter type
     const characterToSave: DexieCharacter = {
       name: character.name,
       description: character.description,
@@ -502,83 +454,52 @@ export async function createCharacter(character: Omit<Character, "id">): Promise
 // Update a character
 export async function updateCharacter(id: number, characterUpdate: Partial<Character>): Promise<Character> {
   try {
-    await initializeData();
+    await initializeDatabase();
     
     if (!isIndexedDBSupported()) {
       throw new Error("IndexedDB is not supported in this browser");
     }
     
-    // Get existing character
+    // Get existing character with images
     const existingCharacter = await db.getCharacterWithImages(id);
     
     if (!existingCharacter) {
       throw new Error(`Character with ID ${id} not found`);
     }
     
-    // Determine which images to use
-    const imagesToSave = characterUpdate.images 
-      ? characterUpdate.images.map(img => ({
-          characterId: id,
-          id: img.id ? Number(img.id.toString().replace(/\D/g, "")) || undefined : undefined,
-          url: img.url,
-          caption: img.caption
-        }))
-      : existingCharacter.images;
-      
-    // Determine main image URL with consistent rules
-    let imageUrl = characterUpdate.imageUrl;
-    
-    // If imageUrl is explicitly provided, use that
-    if (imageUrl) {
-      // Use it as-is - explicit user choice  
-    }
-    // If no imageUrl is provided but there are images
-    else if (!imageUrl && imagesToSave && imagesToSave.length > 0) {
-      // First try to use the existing imageUrl if it's still valid
-      if (existingCharacter.imageUrl && !existingCharacter.imageUrl.includes('placeholder.svg')) {
-        // Make sure the image still exists in the gallery
-        const imageStillExists = imagesToSave.some(img => img.url === existingCharacter.imageUrl);
-        if (imageStillExists) {
-          imageUrl = existingCharacter.imageUrl;
-        } else {
-          // Find first non-placeholder image
-          const nonPlaceholder = imagesToSave.find(img => !img.url.includes('placeholder.svg'));
-          imageUrl = nonPlaceholder ? nonPlaceholder.url : imagesToSave[imagesToSave.length - 1].url;
-        }
-      } else {
-        // Find first non-placeholder image
-        const nonPlaceholder = imagesToSave.find(img => !img.url.includes('placeholder.svg'));
-        imageUrl = nonPlaceholder ? nonPlaceholder.url : imagesToSave[imagesToSave.length - 1].url;
-      }
-    } else {
-      // Keep existing image if no update is provided
-      imageUrl = existingCharacter.imageUrl;
-    }
-    
-    // Prepare the character to save
-    const characterToSave: DexieCharacter = {
+    // Prepare the updated character data
+    const updatedCharacter: DexieCharacter & { images?: any[] } = {
       id,
       name: characterUpdate.name ?? existingCharacter.name,
       description: characterUpdate.description ?? existingCharacter.description,
-      imageUrl: imageUrl,
+      imageUrl: characterUpdate.imageUrl ?? existingCharacter.imageUrl,
       modelUrl: characterUpdate.modelUrl ?? existingCharacter.modelUrl,
       story: characterUpdate.chapterText ?? existingCharacter.story,
     };
     
-    // Save the updated character with its images
-    await db.saveCharacterWithImages({
-      ...characterToSave,
-      images: imagesToSave
-    });
+    // Handle images update if provided
+    if (characterUpdate.images) {
+      updatedCharacter.images = characterUpdate.images.map(img => ({
+        id: typeof img.id === 'number' ? img.id : undefined,
+        characterId: id,
+        url: img.url,
+        caption: img.caption
+      }));
+    } else {
+      // Keep existing images
+      updatedCharacter.images = existingCharacter.images;
+    }
+    
+    // Save the updated character
+    await db.saveCharacterWithImages(updatedCharacter);
     
     // Return the updated character
-    const updatedCharacter = await getCharacter(id);
-    
-    if (!updatedCharacter) {
+    const result = await getCharacter(id);
+    if (!result) {
       throw new Error("Failed to retrieve updated character");
     }
     
-    return updatedCharacter;
+    return result;
   } catch (error) {
     console.error(`Error updating character ${id}:`, error);
     throw error;
@@ -586,13 +507,13 @@ export async function updateCharacter(id: number, characterUpdate: Partial<Chara
 }
 
 // Add an image to a character
-// Define a new interface for the input type for addCharacterImage
-interface AddCharacterImageInput extends Omit<CharacterImage, "id"> {
+interface AddCharacterImageInput extends Omit<CharacterImage, "id" | "characterId"> {
   setAsMain?: boolean;
 }
+
 export async function addCharacterImage(characterId: number, image: AddCharacterImageInput): Promise<Character> {
   try {
-    await initializeData();
+    await initializeDatabase();
     
     if (!isIndexedDBSupported()) {
       throw new Error("IndexedDB is not supported in this browser");
@@ -607,26 +528,20 @@ export async function addCharacterImage(characterId: number, image: AddCharacter
     
     // Add the new image
     const images = character.images ?? [];
-    images.push({
+    const newImage = {
       characterId,
       url: image.url,
       caption: image.caption,
-    });
+    };
     
-    // Update the main image only if:
-    // 1. There was no main image before OR
-    // 2. The current main image is a placeholder OR
-    // 3. The new image is explicitly marked to be used as main
-    const shouldUpdateMainImage = 
-      !character.imageUrl || 
-      character.imageUrl.includes('placeholder.svg') ||
-      image.setAsMain === true;
+    images.push(newImage);
     
+    // Update the character with new image
     const updatedCharacter = {
       ...character,
       images,
-      // Only update imageUrl if needed
-      imageUrl: shouldUpdateMainImage ? image.url : character.imageUrl
+      // Update imageUrl if setAsMain is true
+      imageUrl: image.setAsMain ? image.url : character.imageUrl
     };
     
     // Save the updated character
@@ -647,9 +562,9 @@ export async function addCharacterImage(characterId: number, image: AddCharacter
 }
 
 // Remove an image from a character
-export async function removeCharacterImage(characterId: number, imageId: string): Promise<Character> {
+export async function removeCharacterImage(characterId: number, imageId: number): Promise<Character> {
   try {
-    await initializeData();
+    await initializeDatabase();
     
     if (!isIndexedDBSupported()) {
       throw new Error("IndexedDB is not supported in this browser");
@@ -663,17 +578,10 @@ export async function removeCharacterImage(characterId: number, imageId: string)
     }
     
     // Find the image being removed (for reference)
-    const removingImage = character.images?.find(img => {
-      const imgId = img.id !== undefined ? img.id.toString() : '';
-      return imgId === imageId;
-    });
+    const removingImage = character.images?.find(img => img.id === imageId);
     
     // Filter out the image to remove
-    const images = character.images?.filter(img => {
-      // Convert number IDs to string for comparison
-      const imgId = img.id !== undefined ? img.id.toString() : '';
-      return imgId !== imageId;
-    }) ?? [];
+    const images = character.images?.filter(img => img.id !== imageId) ?? [];
     
     // Check if we're removing the main image
     const mainImageRemoved = removingImage && character.imageUrl === removingImage.url;
@@ -682,15 +590,12 @@ export async function removeCharacterImage(characterId: number, imageId: string)
     let newMainImageUrl = character.imageUrl;
     
     if (mainImageRemoved) {
-      // If there are remaining images, choose the first non-placeholder
+      // If there are remaining images, choose the first one as main
       if (images.length > 0) {
-        const nonPlaceholder = images.find(img => !img.url.includes('placeholder.svg'));
-        newMainImageUrl = nonPlaceholder 
-          ? nonPlaceholder.url 
-          : images[images.length - 1].url;
+        newMainImageUrl = images[0].url;
       } else {
-        // If no images left, use placeholder
-        newMainImageUrl = `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`;
+        // If no images left, clear the imageUrl
+        newMainImageUrl = "";
       }
     }
     

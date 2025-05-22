@@ -12,7 +12,6 @@ import { BookOpen, CuboidIcon as Cube, ImageIcon, Save, ArrowLeft } from "lucide
 import { ModelUploader } from "@/components/model-uploader"
 import { ImageGallery } from "@/components/image-gallery"
 import { createCharacter, Character, CharacterImage } from "@/lib/data"
-import { v4 as uuidv4 } from 'uuid'
 import { RichTextEditor } from "@/components/rich-text-editor"
 
 export default function NewCharacterPage() {
@@ -34,8 +33,9 @@ export default function NewCharacterPage() {
   }
 
   const handleAddImage = (image: Omit<CharacterImage, "id">) => {
+    // Generate a temporary numeric ID (negative to avoid conflicts with DB IDs)
     const newImage: CharacterImage = {
-      id: `temp-${uuidv4()}`,
+      id: -Math.floor(Math.random() * 1000000), // Use negative numbers for temp IDs
       ...image
     }
     
@@ -46,7 +46,7 @@ export default function NewCharacterPage() {
     }))
   }
   
-  const handleRemoveImageLogic = async (imageId: string): Promise<void> => {
+  const handleRemoveImageLogic = async (imageId: number): Promise<void> => {
     const updatedImages = character.images.filter(img => img.id !== imageId)
     const wasMainImage = character.images.find(img => img.id === imageId)?.url === character.imageUrl
     let newMainImage = character.imageUrl
@@ -61,7 +61,7 @@ export default function NewCharacterPage() {
     await Promise.resolve(); 
   }
   
-  const handleUpdateImageCaption = (imageId: string, caption: string) => {
+  const handleUpdateImageCaption = (imageId: number, caption: string) => {
     const updatedImages = character.images.map(img => 
       img.id === imageId ? { ...img, caption } : img
     )
@@ -108,7 +108,7 @@ export default function NewCharacterPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-8">
-        <Link href="/characters">
+        <Link href="/characters" legacyBehavior>
           <Button variant="ghost" size="sm" className="gap-1">
             <ArrowLeft className="h-4 w-4" />
             Back to Characters
@@ -119,7 +119,6 @@ export default function NewCharacterPage() {
           <p className="text-muted-foreground">Create a new character with image, 3D model, and chapter text.</p>
         </div>
       </div>
-
       <form onSubmit={handleFormSubmit}>
         <Card className="mb-8">
           <CardHeader>
@@ -205,5 +204,5 @@ export default function NewCharacterPage() {
         </div>
       </form>
     </div>
-  )
+  );
 }

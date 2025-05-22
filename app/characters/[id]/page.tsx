@@ -83,14 +83,13 @@ export default function CharacterDetailPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold tracking-tight">{character.name}</h1>
           <p className="text-muted-foreground">{character.description}</p>
         </div>
-        <Link href={`/characters/${character.id}/edit`}>
+        <Link href={`/characters/${character.id}/edit`} legacyBehavior>
           <Button className="gap-2 glow-button">
             <Edit className="h-4 w-4" />
             Edit Character
           </Button>
         </Link>
       </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
           <TabsTrigger value="main" className="flex items-center gap-1">
@@ -126,7 +125,7 @@ export default function CharacterDetailPage({ params }: PageProps) {
             <Card className="lg:col-span-1 overflow-hidden neon-border card-hover-effect">
               <div className="relative w-full aspect-square">
                 <Image
-                  src={getMainImageUrl(character) || `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(character.name)}`}
+                  src={getMainImageUrl(character) || `/assets/default-character.jpg`}
                   alt={character.name}
                   fill
                   className="object-cover"
@@ -142,12 +141,12 @@ export default function CharacterDetailPage({ params }: PageProps) {
                     <p className="text-sm">{character.description}</p>
                   </div>
                   <div className="flex justify-between mt-4">
-                    <Link href={`/characters/${character.id}/edit`}>
+                    <Link href={`/characters/${character.id}/edit`} legacyBehavior>
                       <Button variant="outline" size="sm" className="transition-all duration-300 hover:border-primary">
                         Edit Profile
                       </Button>
                     </Link>
-                    <Link href={`/models/${character.id}`}>
+                    <Link href={`/models/${character.id}`} legacyBehavior>
                       <Button
                         variant="outline"
                         size="sm"
@@ -432,5 +431,5 @@ export default function CharacterDetailPage({ params }: PageProps) {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

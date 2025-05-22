@@ -69,7 +69,7 @@ export default function ModelDetailPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-8">
-        <Link href="/models">
+        <Link href="/models" legacyBehavior>
           <Button variant="ghost" size="sm" className="gap-1">
             <ArrowLeft className="h-4 w-4" />
             Back to Models
@@ -80,7 +80,6 @@ export default function ModelDetailPage({ params }: PageProps) {
           <p className="text-muted-foreground">{model.description}</p>
         </div>
       </div>
-
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -94,18 +93,17 @@ export default function ModelDetailPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
-
       {character && (
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-xl font-semibold">Associated Character</h2>
             <p className="text-muted-foreground">{character.name}</p>
           </div>
-          <Link href={`/characters/${character.id}`}>
+          <Link href={`/characters/${character.id}`} legacyBehavior>
             <Button>View Character Details</Button>
           </Link>
         </div>
       )}
     </div>
-  )
+  );
 }

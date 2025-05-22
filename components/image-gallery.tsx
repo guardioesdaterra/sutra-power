@@ -13,8 +13,8 @@ import type { CharacterImage } from "@/lib/data"
 interface ImageGalleryProps {
   images: CharacterImage[]
   onAddImage: (image: Omit<CharacterImage, "id">) => void
-  onRemoveImage: (imageId: string) => Promise<void>
-  onUpdateCaption: (imageId: string, caption: string) => void
+  onRemoveImage: (imageId: number) => Promise<void>
+  onUpdateCaption: (imageId: number, caption: string) => void
   onSetMainImage?: (imageUrl: string) => void
   mainImageUrl?: string
 }
@@ -27,16 +27,18 @@ export function ImageGallery({
   onSetMainImage,
   mainImageUrl
 }: ImageGalleryProps) {
-  const [editingCaption, setEditingCaption] = useState<string | null>(null)
+  const [editingCaption, setEditingCaption] = useState<number | null>(null)
   const [newCaption, setNewCaption] = useState("")
-  const [deletingImageId, setDeletingImageId] = useState<string | null>(null)
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null)
 
   const handleEditCaption = (image: CharacterImage) => {
-    setEditingCaption(image.id)
-    setNewCaption(image.caption ?? "")
+    if (typeof image.id === 'number') {
+      setEditingCaption(image.id)
+      setNewCaption(image.caption ?? "")
+    }
   }
 
-  const handleSaveCaption = (imageId: string) => {
+  const handleSaveCaption = (imageId: number) => {
     onUpdateCaption(imageId, newCaption)
     setEditingCaption(null)
   }
@@ -45,7 +47,7 @@ export function ImageGallery({
     setEditingCaption(null)
   }
   
-  const handleRemoveImageLogic = async (imageId: string) => {
+  const handleRemoveImageLogic = async (imageId: number) => {
     if (!confirm("Are you sure you want to remove this image? This action cannot be undone.")) {
       return;
     }
@@ -59,7 +61,7 @@ export function ImageGallery({
     }
   }
   
-  const onRemoveImageHandler = (imageId: string) => {
+  const onRemoveImageHandler = (imageId: number) => {
     void handleRemoveImageLogic(imageId);
   }
   
@@ -79,10 +81,10 @@ export function ImageGallery({
                 <DialogTrigger asChild>
                   <div className="w-full h-full">
                     <Image
-                      src={image.url ?? "/placeholder.svg"}
+                      className="rounded-lg object-cover"
+                      src={image.url ?? "/assets/default-image.jpg"}
                       alt={image.caption ?? "Character image"}
                       fill
-                      className="object-cover hover:opacity-90 transition-opacity"
                     />
                     {image.url === mainImageUrl && (
                       <div className="absolute top-2 right-2 bg-primary rounded-full p-1" title="Main image">
@@ -94,10 +96,10 @@ export function ImageGallery({
                 <DialogContent className="max-w-3xl" aria-describedby={`image-${image.id}-description`}>
                   <div className="relative aspect-square w-full">
                     <Image
-                      src={image.url ?? "/placeholder.svg"}
+                      className="rounded-lg object-cover"
+                      src={image.url ?? "/assets/default-image.jpg"}
                       alt={image.caption ?? "Character image"}
                       fill
-                      className="object-contain"
                     />
                   </div>
                   <p id={`image-${image.id}-description`} className="text-center mt-2">
@@ -120,7 +122,7 @@ export function ImageGallery({
                     placeholder="Image caption"
                     className="text-sm"
                   />
-                  <Button variant="ghost" size="icon" onClick={() => handleSaveCaption(image.id)} className="h-8 w-8">
+                  <Button variant="ghost" size="icon" onClick={() => handleSaveCaption(image.id as number)} className="h-8 w-8">
                     <Check className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
@@ -148,7 +150,7 @@ export function ImageGallery({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onRemoveImageHandler(image.id)}
+                      onClick={() => typeof image.id === 'number' && onRemoveImageHandler(image.id)}
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       disabled={deletingImageId === image.id}
                     >
@@ -195,7 +197,7 @@ function ImageUploadCard({ onAddImage }: { onAddImage: (image: Omit<CharacterIma
     setIsUploading(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000))
-      if (!previewUrl.includes('placeholder.svg')) {
+      if (!previewUrl.includes('/assets/default-image.jpg')) {
         onAddImage({
           url: previewUrl,
           caption: caption,

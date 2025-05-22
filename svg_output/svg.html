@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyberpunk Icons</title>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #00ffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+            justify-content: center;
+        }
+        .icon-container {
+            border: 1px solid #ff00ff;
+            padding: 15px;
+            width: 150px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 0, 255, 0.05);
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff inset;
+        }
+        svg {
+            width: 80px;
+            height: 80px;
+        }
+        .icon-label {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cyberpunk SVG Icons</h1>
+
+    <!-- Example Icon 1: Futuristic Gear -->
+    <div class="icon-container">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <title>Futuristic Gear</title>
+            <defs>
+                <linearGradient id="gearGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#00ffff;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#ff00ff;stop-opacity:1" />
+                </linearGradient>
+                <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <path d="M50 10 L55 25 L70 28 L65 40 L72 50 L65 60 L70 72 L55 75 L50 90 L45 75 L30 72 L35 60 L28 50 L35 40 L30 28 L45 25 Z" fill="url(#gearGradient)" stroke="#00ffff" stroke-width="2" filter="url(#neonGlow)"/>
+            <circle cx="50" cy="50" r="15" fill="none" stroke="#ff00ff" stroke-width="3" stroke-dasharray="5,3"/>
+        </svg>
+        <div class="icon-label">Icon 1: Futuristic Gear</div>
+    </div>
+
+    <!-- Example Icon 2: Glitchy Eye -->
+    <div class="icon-container">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <title>Glitchy Eye</title>
+            <defs>
+                <radialGradient id="eyeGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                    <stop offset="0%" style="stop-color:#ff00ff;stop-opacity:1" />
+                    <stop offset="70%" style="stop-color:#00ffff;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#0000ff;stop-opacity:1" />
+                </radialGradient>
+                 <filter id="glitch" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="1" result="turbulence"/>
+                    <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+            </defs>
+            <ellipse cx="50" cy="50" rx="40" ry="25" fill="url(#eyeGradient)" stroke="#00ff00" stroke-width="2"/>
+            <ellipse cx="50" cy="50" rx="15" ry="10" fill="#0a0a0a"/>
+            <ellipse cx="52" cy="48" rx="13" ry="8" fill="#0a0a0a" filter="url(#glitch)"/> <!-- Glitched pupil -->
+            <path d="M10 50 Q50 20 90 50" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+            <path d="M10 50 Q50 80 90 50" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+        </svg>
+        <div class="icon-label">Icon 2: Glitchy Eye</div>
+    </div>
+
+    <!-- Example Icon 3: Neon Circuit -->
+    <div class="icon-container">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <title>Neon Circuit</title>
+            <style>
+                .circuit-path {
+                    fill: none;
+                    stroke-linecap: round;
+                    stroke-linejoin: round;
+                    stroke-width: 3;
+                    animation: draw 5s linear infinite;
+                }
+                @keyframes draw {
+                    to {
+                        stroke-dashoffset: 1000;
+                    }
+                }
+            </style>
+             <defs>
+                <filter id="circuitGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <rect width="100" height="100" fill="#101020"/>
+            <path class="circuit-path" stroke="#00ff00" stroke-dasharray="50" stroke-dashoffset="0" d="M10 10 H90 V30 H70 V50 H90 V70 H10 V50 H30 V30 H10 Z" filter="url(#circuitGlow)"/>
+            <path class="circuit-path" stroke="#ff00ff" stroke-dasharray="30" stroke-dashoffset="100" d="M20 20 L40 40 L20 60 M40 40 L60 20 L80 40 L60 60 L40 40" filter="url(#circuitGlow)"/>
+            <circle cx="10" cy="10" r="4" fill="#00ffff"/> <circle cx="90" cy="10" r="4" fill="#00ffff"/>
+            <circle cx="10" cy="70" r="4" fill="#00ffff"/> <circle cx="90" cy="70" r="4" fill="#00ffff"/>
+            <circle cx="50" cy="50" r="5" fill="#ff00ff" stroke="#00ffff" stroke-width="1.5"/>
+        </svg>
+        <div class="icon-label">Icon 3: Neon Circuit</div>
+    </div>
+
+    <!-- 
+        PLACEHOLDER FOR MORE ICONS
+        Use your IDE's AI to generate SVG code for each icon.
+        Follow the cyberpunk style: neon colors, glitch effects, futuristic motifs.
+        Each icon should be wrapped in a <div class="icon-container"> like the examples above.
+        Remember to give each SVG a <title> and a label below it.
+    -->
+
+    <!-- Icon 4 Placeholder -->
+    <div class="icon-container">
+        <!-- SVG for Icon 4 will go here. Prompt example: "Create an SVG icon of a cyberpunk data chip, glowing blue, with visible circuits" -->
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><title>Icon 4</title><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#333">Icon 4</text></svg>
+        <div class="icon-label">Icon 4: [Your Icon Name]</div>
+    </div>
+
+    <!-- Icon 5 Placeholder -->
+    <div class="icon-container">
+        <!-- SVG for Icon 5 will go here. Prompt example: "Generate an SVG icon of a biohazard symbol with a futuristic neon green outline and digital artifacts" -->
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><title>Icon 5</title><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#333">Icon 5</text></svg>
+        <div class="icon-label">Icon 5: [Your Icon Name]</div>
+    </div>
+
+    <!-- ... continue this pattern for 180 icons ... -->
+
+    <!-- Icon 180 Placeholder -->
+    <div class="icon-container">
+        <!-- SVG for Icon 180 will go here. -->
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><title>Icon 180</title><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#333">Icon 180</text></svg>
+        <div class="icon-label">Icon 180: [Your Icon Name]</div>
+    </div>
+
+</body>
+</html>

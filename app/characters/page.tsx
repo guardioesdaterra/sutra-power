@@ -16,14 +16,13 @@ export default async function CharactersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Characters</h1>
           <p className="text-muted-foreground">Manage and organize all 54 characters from the Buddhist Sutra.</p>
         </div>
-        <Link href="/characters/new">
+        <Link href="/characters/new" legacyBehavior>
           <Button className="gap-2">
             <PlusCircle className="h-4 w-4" />
             Add Character
           </Button>
         </Link>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {characters.map((character) => (
           <Card key={character.id} className="overflow-hidden">
@@ -40,13 +39,13 @@ export default async function CharactersPage() {
               <p className="text-sm text-muted-foreground line-clamp-2">{character.description}</p>
             </CardContent>
             <CardFooter className="p-4 pt-0 flex justify-between">
-              <Link href={`/characters/${character.id}`}>
+              <Link href={`/characters/${character.id}`} legacyBehavior>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Eye className="h-4 w-4" />
                   View
                 </Button>
               </Link>
-              <Link href={`/characters/${character.id}/edit`}>
+              <Link href={`/characters/${character.id}/edit`} legacyBehavior>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Edit className="h-4 w-4" />
                   Edit
@@ -57,5 +56,5 @@ export default async function CharactersPage() {
         ))}
       </div>
     </div>
-  )
+  );
 }

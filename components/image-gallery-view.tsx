@@ -24,11 +24,8 @@ export function ImageGallery({ images, characterName, mainImageUrl }: ImageGalle
               }}
             >
               <Image
-                src={image.url && !image.url.includes('placeholder.svg') 
-                  ? image.url
-                  : `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(characterName)}`
-                }
-                alt={image.caption ?? characterName}
+                src={image.url || "/assets/default-image.jpg"}
+                alt={image.caption || characterName}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
@@ -49,11 +46,8 @@ export function ImageGallery({ images, characterName, mainImageUrl }: ImageGalle
           <DialogContent className="max-w-3xl" aria-describedby={`image-${image.id}-description`}>
             <div className="relative aspect-square w-full">
               <Image
-                src={image.url && !image.url.includes('placeholder.svg') 
-                  ? image.url
-                  : `/placeholder.svg?height=400&width=400&text=${encodeURIComponent(characterName)}`
-                }
-                alt={image.caption ?? characterName}
+                src={image.url || "/assets/default-image.jpg"}
+                alt={image.caption || characterName}
                 fill
                 className="object-contain"
               />

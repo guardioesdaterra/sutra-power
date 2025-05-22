@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplos Práticos: Ferramentas SVG-MCP</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 1rem;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+        .tool-section {
+            background-color: #fff;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .tool-section h2 {
+            background-color: #5cb85c;
+            color: white;
+            padding: 15px;
+            margin: 0;
+            font-size: 1.4em;
+        }
+        .tool-description {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-style: italic;
+            color: #555;
+        }
+        .example-container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .example {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .example h3 {
+            margin-top: 0;
+            color: #337ab7;
+            font-size: 1.1em;
+        }
+        .svg-output {
+            width: 100%;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            margin-top: 10px;
+            padding:10px;
+            box-sizing: border-box;
+        }
+        .prompt-code {
+            background-color: #e9e9e9;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .code-block {
+             max-height: 200px;
+             overflow-y: auto;
+             border: 1px solid #ddd;
+             padding: 10px;
+             background-color: #2d2d2d;
+             color: #ccc;
+             font-family: 'Courier New', Courier, monospace;
+             font-size: 0.85em;
+             border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Demonstração Prática: Ferramentas SVG-MCP</h1>
+    </header>
+
+    <section class="tool-section">
+        <h2>1. mcp_svg-mcp_generate_svg_from_prompt</h2>
+        <div class="tool-description">
+            Esta ferramenta tenta gerar um SVG básico a partir de uma descrição textual. Os resultados podem variar dependendo da complexidade e clareza do prompt.
+        </div>
+        <div class="example-container">
+            <div class="example">
+                <h3>Exemplo 1: Tentativa de Ícone de Configurações</h3>
+                <p>Prompt: <span class="prompt-code">"Generate a modern settings gear icon with 8 teeth, a central circle, and a subtle metallic gradient"</span></p>
+                <p>Resultado Prático:</p>
+                <div class="svg-output">
+                    <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">    <title>Generated from: Generate a modern settings gear icon with 8 teeth, a central circle, and a subtle metallic gradient</title>    <defs>        <linearGradient id="primaryGradient1" x1="0%" y1="0%" x2="100%" y2="100%">            <stop offset="0%" style="stop-color:#003366;stop-opacity:1" />            <stop offset="100%" style="stop-color:#336699;stop-opacity:1" />        </linearGradient>    </defs> <rect width="300" height="300" fill="#ffffff"/>             <g transform="translate(150.0, 150.0)">                <circle cx="0" cy="0" r="60" fill="none" stroke="#003366" stroke-width="2"/>                <circle cx="0" cy="0" r="45" fill="none" stroke="#ff9900" stroke-width="1" stroke-dasharray="4,2"/>                <circle cx="0" cy="0" r="30" fill="#336699" opacity="0.2"/>                <circle cx="0" cy="0" r="15" fill="#003366" opacity="0.5"/>            </g>     <rect x="10" y="265" width="280" height="25" fill="#000000" opacity="0.6" rx="3"/>    <text x="50%" y="277.5" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="11px" fill="#333333">        Generate a modern settings gear... [corporate]    </text></svg>
+                </div>
+                <p>Observação: A ferramenta gerou um padrão circular abstrato em vez de um ícone de engrenagem detalhado, indicando uma dificuldade em interpretar formas complexas específicas a partir do prompt.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="tool-section">
+        <h2>2. mcp_svg-mcp_generate_svg_animation</h2>
+        <div class="tool-description">
+            Esta ferramenta tenta gerar uma animação SVG baseada em um prompt textual, tipo de animação e duração. A complexidade da animação resultante pode ser limitada.
+        </div>
+        <div class="example-container">
+            <div class="example">
+                <h3>Exemplo 2: Tentativa de Animação de Seta</h3>
+                <p>Prompt: <span class="prompt-code">"Create a right-pointing chevron arrow that moves from left to right across the viewbox, with a trail that fades in and out"</span> (Animation Type: loop, Duration: 2500ms)</p>
+                <p>Resultado Prático:</p>
+                <div class="svg-output">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">    <style>        @keyframes loop1 {                0%, 100% { transform: translateY(0); }                50% { transform: translateY(-20px); }            }        .elem1-0 { animation: loop1 2500ms ease-in-out 0.0ms infinite; }        .elem1-1 { animation: loop1 2500ms ease-in-out 250.0ms infinite; }        .elem1-2 { animation: loop1 2500ms ease-in-out 500.0ms infinite; }        .elem1-3 { animation: loop1 2500ms ease-in-out 750.0ms infinite; }        .elem1-4 { animation: loop1 2500ms ease-in-out 1000.0ms infinite; }    </style>    <circle cx="100" cy="100" r="10" fill="blue" class="elem1-0"/> <circle cx="120" cy="100" r="10" fill="blue" class="elem1-1"/> <circle cx="140" cy="100" r="10" fill="blue" class="elem1-2"/> <circle cx="160" cy="100" r="10" fill="blue" class="elem1-3"/> <circle cx="180" cy="100" r="10" fill="blue" class="elem1-4"/></svg>
+                </div>
+                <p>Observação: Em vez de uma seta em movimento, a ferramenta produziu uma série de círculos com uma animação de "loop" vertical. Isso mostra limitações na interpretação de movimentos direcionais e formas específicas para animação.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="tool-section">
+        <h2>3. mcp_svg-mcp_get_svg_component</h2>
+        <div class="tool-description">
+            Esta ferramenta busca recuperar um componente SVG reutilizável de uma biblioteca pré-definida, com base no tipo, variante, cor, paleta e tamanho.
+        </div>
+        <div class="example-container">
+            <div class="example">
+                <h3>Exemplo 3: Tentativa de Loader de Barra de Progresso Animada</h3>
+                <p>Parâmetros: <span class="prompt-code">Component Type: "loader", Variant: "progress_bar_animated", Color: "#76FF03", Palette: "modern", Size: 150</span></p>
+                <p>Resultado Prático:</p>
+                <div class="svg-output">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 50 50">            <circle cx="25" cy="25" r="20" fill="none" stroke="#76FF03" stroke-width="5" stroke-linecap="round" opacity="0.2" />            <circle cx="25" cy="25" r="20" fill="none" stroke="#76FF03" stroke-width="5" stroke-linecap="round" stroke-dasharray="60 100">                <animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />            </circle>        </svg>
+                </div>
+                <p>Observação: A variante "progress_bar_animated" resultou em um loader circular giratório, indicando que a biblioteca pode não ter a variante de barra de progresso esperada ou o mapeamento é diferente.</p>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>

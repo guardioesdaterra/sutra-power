@@ -16,7 +16,6 @@ export default async function ChaptersPage() {
           <p className="text-muted-foreground">Browse and edit the 54 chapters of the ancient Buddhist Sutra.</p>
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {chapters.map((chapter) => (
           <Card key={chapter.id}>
@@ -32,13 +31,13 @@ export default async function ChaptersPage() {
               </div>
             </CardContent>
             <CardFooter className="px-6 pb-6 pt-0 flex justify-between">
-              <Link href={`/chapters/${chapter.id}`}>
+              <Link href={`/chapters/${chapter.id}`} legacyBehavior>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Eye className="h-4 w-4" />
                   View
                 </Button>
               </Link>
-              <Link href={`/characters/${chapter.characterId}`}>
+              <Link href={`/characters/${chapter.characterId}`} legacyBehavior>
                 <Button variant="outline" size="sm" className="gap-1">
                   View Related Character
                 </Button>
@@ -48,5 +47,5 @@ export default async function ChaptersPage() {
         ))}
       </div>
     </div>
-  )
+  );
 }

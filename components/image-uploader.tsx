@@ -45,7 +45,7 @@ export function ImageUploader({ onUpload, initialImage = "" }: ImageUploaderProp
     setIsUploading(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      if (previewUrl && !previewUrl.includes('placeholder.svg')) {
+      if (previewUrl && previewUrl !== '/assets/default-image.jpg') {
         onUpload(previewUrl)
       }
       console.log(`Image uploaded successfully!`)

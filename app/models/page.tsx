@@ -45,7 +45,6 @@ export default function ModelsPage() {
           <p className="text-muted-foreground">Browse and interact with 3D models of all 54 characters.</p>
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {models.map((model) => (
           <Card key={model.id}>
@@ -59,13 +58,13 @@ export default function ModelsPage() {
               <p className="mt-4 text-sm text-muted-foreground">{model.description}</p>
             </CardContent>
             <CardFooter className="px-6 pb-6 pt-0 flex justify-between">
-              <Link href={`/models/${model.id}`}>
+              <Link href={`/models/${model.id}`} legacyBehavior>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Eye className="h-4 w-4" />
                   View Full Model
                 </Button>
               </Link>
-              <Link href={`/characters/${model.characterId}`}>
+              <Link href={`/characters/${model.characterId}`} legacyBehavior>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Cube className="h-4 w-4" />
                   View Character
@@ -76,5 +75,5 @@ export default function ModelsPage() {
         ))}
       </div>
     </div>
-  )
+  );
 }

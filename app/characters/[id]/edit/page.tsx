@@ -102,7 +102,7 @@ export default function EditCharacterPage({ params }: PageProps) {
     void handleAddImageLogic(image);
   }
 
-  const handleRemoveImageLogic = async (imageId: string): Promise<void> => {
+  const handleRemoveImageLogic = async (imageId: number): Promise<void> => {
     try {
       const updatedCharacter = await removeCharacterImage(character.id, imageId)
       setCharacter(updatedCharacter)
@@ -113,7 +113,7 @@ export default function EditCharacterPage({ params }: PageProps) {
     }
   }
 
-  const handleUpdateImageCaptionLogic = async (imageId: string, caption: string) => {
+  const handleUpdateImageCaptionLogic = async (imageId: number, caption: string) => {
     try {
       const updatedImages = character.images.map((img) => (img.id === imageId ? { ...img, caption } : img))
       const updatedCharacter = await updateCharacter(character.id, { images: updatedImages })
@@ -124,7 +124,7 @@ export default function EditCharacterPage({ params }: PageProps) {
     }
   }
 
-  const onUpdateImageCaptionHandler = (imageId: string, caption: string) => {
+  const onUpdateImageCaptionHandler = (imageId: number, caption: string) => {
     void handleUpdateImageCaptionLogic(imageId, caption);
   }
 
@@ -197,7 +197,7 @@ export default function EditCharacterPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-8">
-        <Link href={`/characters/${character.id}`}>
+        <Link href={`/characters/${character.id}`} legacyBehavior>
           <Button variant="ghost" size="sm" className="gap-1">
             <ArrowLeft className="h-4 w-4" />
             Back to Character
@@ -210,7 +210,6 @@ export default function EditCharacterPage({ params }: PageProps) {
           </p>
         </div>
       </div>
-
       <form onSubmit={handleFormSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-5 w-full">
@@ -328,5 +327,5 @@ export default function EditCharacterPage({ params }: PageProps) {
         </div>
       </form>
     </div>
-  )
+  );
 }

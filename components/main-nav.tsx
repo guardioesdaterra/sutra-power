@@ -41,7 +41,7 @@ export function MainNav() {
         {navItems.map((item, index) => {
           const isActive = item.activeCheck ? item.activeCheck(pathname) : pathname === item.href
           return (
-            <Link key={item.href} href={item.href} passHref>
+            <Link key={item.href} href={item.href} passHref legacyBehavior>
               <motion.div
                 onHoverStart={() => setHoveredItem(item.label)}
                 onHoverEnd={() => setHoveredItem(null)}
@@ -71,12 +71,12 @@ export function MainNav() {
                 )}
               </motion.div>
             </Link>
-          )
+          );
         })}
       </motion.nav>
       <div className="mt-4 pt-3 border-t border-neutral-700/50 w-full flex items-center justify-center">
         <ModeToggle />
       </div>
     </div>
-  )
+  );
 }
